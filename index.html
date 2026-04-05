@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>대성쎌틱 회의 회장님 지시사항 통합표</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--text:#e6edf3;--text2:#8b949e;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans KR",sans-serif;font-size:17px;}
+.header{background:linear-gradient(135deg,#161b22,#0d1117);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header h1{font-size:19px;font-weight:700;}
+.header p{font-size:12px;color:var(--text2);margin-top:2px;}
+.badge{background:#6b9fd4;color:#fff;font-size:12px;font-weight:700;padding:3px 11px;border-radius:99px;font-family:"DM Mono",monospace;}
+.tabs{display:flex;gap:2px;padding:11px 28px 0;background:var(--surface);border-bottom:1px solid var(--border);}
+.tab{padding:8px 17px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);transition:all 0.2s;border-radius:6px 6px 0 0;}
+.tab:hover{color:var(--text);background:var(--surface2);}
+.tab.active{color:#6b9fd4;border-bottom-color:#6b9fd4;background:var(--surface2);}
+.content{padding:16px 28px;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s;}
+.sum-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.sum-card .bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:10px 0 0 10px;}
+.sum-card .codelbl{font-family:"DM Mono",monospace;font-size:20px;font-weight:900;margin-bottom:4px;}
+.sum-card .lbl{font-size:20px;color:#fff;font-weight:700;margin-bottom:6px;line-height:1.3;}
+.sum-card .num{font-size:20px;font-weight:900;font-family:"DM Mono",monospace;line-height:1;}
+.sum-card .pct{font-size:11px;color:var(--text2);margin-top:3px;}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.chart-card h3{font-size:20px;font-weight:700;color:var(--text2);margin-bottom:14px;}
+.chart-wrap{position:relative;height:185px;}
+/* 빈도표 */
+.freq-layout{display:flex;gap:14px;align-items:flex-start;height:calc(100vh - 110px);}
+.freq-left{flex-shrink:0;overflow-y:auto;max-height:100%;}
+.freq-right{flex:1;min-width:0;overflow-y:auto;max-height:100%;}
+.freq-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ftable{border-collapse:collapse;white-space:nowrap;}
+.ftable,.ftable td,.ftable th{font-size:13px !important;}
+.ftable thead th{background:var(--surface2);padding:5px 10px;text-align:center;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);}
+.ftable thead th.th-cat{text-align:left;min-width:130px;}
+.ftable thead th.th-sub{text-align:left;min-width:185px;border-left:1px solid var(--border);}
+.ftable thead th.th-code{min-width:54px;border-left:1px solid var(--border);}
+.ftable thead th.th-mo{min-width:62px;}
+/* 대분류: 이름행 */
+.ftable tr.rcat-name td{background:#191e27;padding:5px 10px 1px 10px;font-weight:700;border-top:2px solid var(--border);}
+/* 대분류: 소계행 */
+.ftable tr.rcat-tot td{background:#191e27;padding:1px 10px 5px 10px;border-bottom:1px solid #2a3040;}
+.cat-name{display:flex;align-items:center;gap:7px;}
+.cdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.subtotal{font-size:11px !important;color:var(--text2);}
+/* 중분류 행 */
+.ftable tr.rsub td{padding:4px 10px;border-bottom:1px solid #252b35;}
+.ftable tr.rsub:hover td{background:rgba(255,255,255,.025);}
+.ftable tr.rsub td.sub-name{border-left:1px solid var(--border);color:var(--text2);padding-left:14px;}
+.ftable tr.rsub td.sub-code{border-left:1px solid var(--border);text-align:center;font-family:"DM Mono",monospace;color:var(--text2);font-weight:700;}
+.ftable tr.rtot td{background:rgba(255,255,255,.04);padding:5px 10px;font-weight:700;border-top:2px solid #444;}
+.fn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;padding:2px 6px;border-radius:6px;font-family:"DM Mono",monospace;font-weight:700;cursor:pointer;transition:all .15s;}
+.fn:hover{filter:brightness(1.4);transform:scale(1.08);}
+.fn.active-cell{outline:2px solid rgba(255,255,255,.6);outline-offset:1px;}
+.fn.zero{color:#3a3f49;background:none!important;cursor:default;font-weight:400;}
+.fn.zero:hover{filter:none;transform:none;}
+td.nc{text-align:center;vertical-align:middle;}
+/* 드릴다운 */
+.drill-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:sticky;top:0;}
+.drill-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:250px;color:var(--text2);font-size:14px;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+.drill-empty .icon{font-size:30px;opacity:.4;}
+.drill-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 17px;border-bottom:1px solid var(--border);}
+.drill-hdr h3{font-size:14px;font-weight:700;line-height:1.4;}
+.drill-hdr .dmeta{font-size:12px;color:var(--text2);margin-top:3px;}
+.drill-close{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+.drill-close:hover{color:var(--text);}
+.drill-list{list-style:none;overflow-y:auto;max-height:calc(100vh - 200px);}
+.ditem{padding:11px 17px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.ditem:last-child{border-bottom:none;}
+.ditem:hover{background:rgba(255,255,255,.04);}
+.dino{font-family:"DM Mono",monospace;font-size:11px;color:var(--text2);margin-bottom:4px;}
+.ditext{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.dimeta{font-size:11px;color:var(--text2);margin-top:5px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.ctag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap;font-family:"DM Mono",monospace;}
+/* 전체 목록 */
+.filter-bar{display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap;align-items:center;}
+.filter-bar input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 13px;color:var(--text);font-size:14px;font-family:inherit;flex:1;min-width:200px;outline:none;}
+.filter-bar input:focus{border-color:#6b9fd4;}
+.cbt{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.msel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 11px;color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.rcnt{font-size:12px;color:var(--text2);margin-left:auto;white-space:nowrap;}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+table.ltbl{width:100%;border-collapse:collapse;}
+table.ltbl thead th{background:var(--surface2);padding:9px 13px;text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.ltbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+table.ltbl tbody tr:last-child{border-bottom:none;}
+table.ltbl tbody tr:hover{background:var(--surface2);}
+table.ltbl td{padding:10px 13px;vertical-align:top;font-size:13px;}
+td.td-text{white-space:pre-wrap;word-break:break-word;line-height:1.75;}
+.pgn{display:flex;align-items:center;gap:5px;padding:12px;justify-content:center;border-top:1px solid var(--border);}
+.pgb{padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;transition:all .15s;}
+.pgb:hover{border-color:#6b9fd4;color:#6b9fd4;}
+.pgb.active{background:#6b9fd4;border-color:#6b9fd4;color:#000;font-weight:700;}
+.pgb:disabled{opacity:.3;cursor:default;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;}
+.modal-close{float:right;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;margin-top:-2px;}
+.modal h2{font-size:15px;font-weight:700;margin-bottom:12px;line-height:1.5;}
+.mmeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.mmeta span{font-size:12px;color:var(--text2);font-family:"DM Mono",monospace;}
+.mbody{white-space:pre-wrap;line-height:1.8;font-size:14px;color:var(--text);background:var(--surface2);border-radius:8px;padding:15px;border:1px solid var(--border);}
+/* === Senior high-contrast mode (85세 가독성 모드) === */
+:root.senior{
+  --bg:#ffffff !important;
+  --surface:#ffffff !important;
+  --surface2:#f3f5f7 !important;
+  --border:#b8c1cc !important;
+  --text:#111111 !important;
+  --text2:#2b2b2b !important;
+}
+:root.senior body{background:var(--bg) !important;color:var(--text) !important;}
+:root.senior .header{background:var(--surface) !important;border-bottom:2px solid var(--border) !important;}
+:root.senior .header h1{font-size:28px !important;letter-spacing:-0.2px;}
+:root.senior .header p{font-size:18px !important;}
+:root.senior .badge{font-size:16px !important;padding:8px 12px !important;border:2px solid var(--border) !important;}
+:root.senior .tabs{gap:10px !important;}
+:root.senior .tab{font-size:18px !important;padding:12px 18px !important;border-bottom-width:4px !important;}
+:root.senior .content{padding:20px 28px !important;}
+:root.senior .sum-card{padding:18px 18px !important;border-width:2px !important;}
+:root.senior .sum-card .codelbl{font-size:28px !important;}
+:root.senior .sum-card .lbl{font-size:22px !important;color:var(--text) !important;}
+:root.senior .sum-card .num{font-size:26px !important;}
+:root.senior .chart-card h3{font-size:22px !important;color:var(--text) !important;}
+:root.senior .chart-card{border-width:2px !important;}
+:root.senior .freq-layout{gap:18px !important;}
+:root.senior .freq-wrap,.tbl-wrap{border-width:2px !important;}
+:root.senior .ftable thead th{font-size:16px !important;padding:10px 12px !important;border-bottom-width:3px !important;}
+:root.senior .ftable td{font-size:18px !important;padding:12px 12px !important;}
+:root.senior table.ltbl thead th{font-size:16px !important;padding:12px 14px !important;}
+:root.senior table.ltbl td{font-size:18px !important;padding:12px 14px !important;line-height:1.8 !important;}
+:root.senior .filter-bar input{font-size:18px !important;padding:12px 14px !important;border-width:2px !important;}
+:root.senior .msel{font-size:18px !important;padding:10px 12px !important;border-width:2px !important;}
+:root.senior .cbt{font-size:16px !important;padding:10px 14px !important;border-width:2px !important;}
+:root.senior .rcnt{font-size:16px !important;}
+:root.senior .drill-list .ditext{font-size:18px !important;line-height:1.9 !important;}
+:root.senior .modal{border-width:2px !important;}
+:root.senior .mbody{font-size:18px !important;line-height:1.9 !important;border-width:2px !important;}
+:root.senior .pgb{font-size:16px !important;padding:10px 14px !important;border-width:2px !important;}
+:root.senior .pgb.active{color:#111 !important;}
+:root.senior table.ltbl tbody tr:hover{background:#eef2f6 !important;}
+:root.senior .ditem:hover{background:#eef2f6 !important;}
+
+/* Toggle button */
+.senior-toggle{
+  margin-left:12px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:16px;
+  cursor:pointer;
+  user-select:none;
+}
+.senior-toggle:hover{filter:brightness(0.98);}
+
+
+/* === Senior patch v2 (가독성/레이아웃 수정) === */
+:root.senior{
+  /* 기존 다크테마 변수까지 강제로 백색 계열로 덮어쓰기 */
+  --panel:#ffffff !important;
+  --card:#ffffff !important;
+  --card2:#ffffff !important;
+  --ink:#111111 !important;
+  --muted:#2b2b2b !important;
+  --shadow: rgba(0,0,0,0.08) !important;
+}
+
+/* 월별 빈도표 하단/여백 검정 공간 제거 */
+:root.senior .freq-wrap,
+:root.senior .freq-layout,
+:root.senior .freq-layout > *,
+:root.senior .chart-card,
+:root.senior .tbl-wrap,
+:root.senior .content,
+:root.senior .page,
+:root.senior .tabpane,
+:root.senior .tab-content{
+  background:#ffffff !important;
+}
+
+/* 월별 빈도표 행 높이 15% 축소: padding/line-height 조정 */
+:root.senior .ftable td{
+  padding:10px 12px !important;      /* 12 -> 10 (약 -17%) */
+  line-height:1.35 !important;
+}
+:root.senior .ftable thead th{
+  padding:9px 12px !important;       /* 10 -> 9 */
+}
+
+/* 소계 텍스트(예: "소계 : 85건 (23.4%)") 대비/크기 개선 */
+:root.senior .subtotal,
+:root.senior .subtot,
+:root.senior .sumline,
+:root.senior .sum-card .num,
+:root.senior .sum-card .lbl{
+  color:#ffffff !important; /* 요청: 흰색 표시 */
+}
+:root.senior .sum-card .num{
+  font-size:calc(26px * 1.3) !important; /* +30% */
+}
+:root.senior .sum-card{
+  background:#111111 !important; /* 흰색 텍스트가 보이도록 카드 배경을 진하게 */
+  border-color:#111111 !important;
+}
+
+/* 전체목록: 대분류/중분류 한 줄 표시 + 너비 확대 */
+:root.senior .content{
+  max-width: 1600px !important;
+}
+:root.senior .tbl-wrap{
+  overflow-x:auto !important;
+}
+:root.senior table.ltbl{
+  min-width: 1500px !important;
+  table-layout: auto !important;
+}
+:root.senior table.ltbl td:nth-child(1),
+:root.senior table.ltbl td:nth-child(2),
+:root.senior table.ltbl th:nth-child(1),
+:root.senior table.ltbl th:nth-child(2){
+  white-space: nowrap !important;
+}
+
+
+/* === Senior patch v3 (추가 요청 반영) === */
+
+/* 전체목록: 대분류/중분류 열 너비 50% 확대 */
+:root.senior table.ltbl th:nth-child(1),
+:root.senior table.ltbl td:nth-child(1){min-width:360px !important;}
+:root.senior table.ltbl th:nth-child(2),
+:root.senior table.ltbl td:nth-child(2){min-width:520px !important;}
+
+/* 월별 빈도표: 검정색(대분류 구분행/소계행) 제거 */
+:root.senior .ftable tr.rcat-name td,
+:root.senior .ftable tr.rcat-tot td{
+  background:#ffffff !important;
+  color:#111111 !important;
+  border-top:2px solid var(--border) !important;
+  border-bottom:1px solid var(--border) !important;
+}
+:root.senior .ftable tr.rsub td{
+  border-bottom:1px solid var(--border) !important;
+}
+:root.senior .ftable tr.rsub:hover td{
+  background:#eef2f6 !important;
+}
+
+/* 월별 빈도표: '소계' 글자 40% 확대 */
+:root.senior .ftable tr.rcat-tot td .subtotal{
+  font-size: calc(18px * 1.4) !important;
+  font-weight:800 !important;
+  color:#111111 !important;
+}
+
+/* 개요: %가 안 보이는 문제 해결 + 2배 확대 + 85 옆(약 1cm) 배치 */
+:root.senior .sum-card .num{
+  font-size: calc(26px * 1.3) !important; /* 숫자도 살짝 키움(기존 30% 유지) */
+  display:inline-block !important;
+  vertical-align:baseline !important;
+  margin:0 !important;
+}
+:root.senior .sum-card .pct{
+  color:#ffffff !important;
+  font-size: calc(18px * 2) !important; /* 두배 */
+  font-weight:800 !important;
+  display:inline-block !important;
+  margin-left:38px !important; /* 약 1cm */
+  vertical-align:baseline !important;
+}
+
+/* 개요: 검정 박스(카드) 높이 축소 */
+:root.senior .sum-card{
+  padding:12px 14px !important;
+}
+
+/* 차트 카드 높이 축소(개요 탭) */
+:root.senior #tab-overview .chart-wrap{height:150px !important;}
+:root.senior #tab-overview .chart-wrap[style]{height:220px !important;} /* 누적현황(기존 300) */
+
+/* 월별 지시사항 추이/대분류별 구성/누적현황 카드 패딩 축소 */
+:root.senior #tab-overview .chart-card{padding:12px 14px !important;}
+:root.senior #tab-overview .chart-card h3{margin:0 0 10px 0 !important;}
+
+/* 월별 빈도표 우측 패널 높이/여백 축소(검정 여백 방지 포함) */
+:root.senior #tab-freq .drill-empty,
+:root.senior #tab-freq .drill-panel{
+  background:#ffffff !important;
+}
+
+
+/* === Senior patch v4 (2026-02-26 추가 수정) === */
+
+/* 개요 카드: 숫자(85 등)는 대분류 색상 유지(기존 inline style) */
+:root.senior .sum-card .num{ color: inherit !important; }
+
+/* 개요 카드: %는 작게(1/2) + 굵기 해제 + 흰색 */
+:root.senior .sum-card .pct{
+  font-size: 18px !important;   /* 기존 2배(약 36px)에서 절반 수준 */
+  font-weight:400 !important;   /* 굵기 해제 */
+  color:#ffffff !important;
+  margin-left:38px !important;
+}
+
+/* 개요 차트: 월별 지시사항 추이 높이 15% 증가 */
+:root.senior #tab-overview .charts-row .chart-card:first-child .chart-wrap{
+  height:175px !important;      /* 150px -> 175px (+~16.7%) */
+}
+
+/* 월별 빈도표: 대분류 행에 붙는 '빈 칸(검정/흰 띠)' 제거 */
+:root.senior .ftable tr.rcat-name td{
+  padding:6px 10px !important;
+}
+:root.senior .ftable tr.rcat-name td[colspan]{
+  padding:0 !important;
+  height:0 !important;
+  line-height:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+/* 소계 표시 줄도 상하 여백 축소(불필요한 흰 띠 감소) */
+:root.senior .ftable tr.rcat-name td .subtotal{
+  display:inline-block;
+  margin-top:2px !important;
+}
+
+
+/* === Senior patch v5 (2026-02-26 추가 요청 반영) === */
+
+/* 1) 개요: 카드(ABCDEF) 숫자 색상을 대분류 색상으로 강제(5~6색) + 카드 배경은 밝게 */
+:root.senior .sum-card{
+  background:#ffffff !important;
+  color:#111111 !important;
+  border-color:var(--border) !important;
+}
+:root.senior .sum-card .pct{
+  color:#111111 !important;     /* 밝은 배경에서 보이게 */
+  font-size:18px !important;    /* 절반 수준 유지 */
+  font-weight:400 !important;   /* 굵기 해제 */
+}
+/* 각 카드별 색상 매핑 (기존 데이터의 색상값 사용) */
+:root.senior .sum-card[onclick*="goFreq('A')"] .num,
+:root.senior .sum-card[onclick*="goFreq('A')"] .codelbl{color:#6b9fd4 !important;}
+:root.senior .sum-card[onclick*="goFreq('B')"] .num,
+:root.senior .sum-card[onclick*="goFreq('B')"] .codelbl{color:#c0504d !important;}
+:root.senior .sum-card[onclick*="goFreq('C')"] .num,
+:root.senior .sum-card[onclick*="goFreq('C')"] .codelbl{color:#9b7fcf !important;}
+:root.senior .sum-card[onclick*="goFreq('D')"] .num,
+:root.senior .sum-card[onclick*="goFreq('D')"] .codelbl{color:#4f81bd !important;}
+:root.senior .sum-card[onclick*="goFreq('E')"] .num,
+:root.senior .sum-card[onclick*="goFreq('E')"] .codelbl{color:#f79646 !important;}
+:root.senior .sum-card[onclick*="goFreq('F')"] .num,
+:root.senior .sum-card[onclick*="goFreq('F')"] .codelbl{color:#7f7f7f !important;}
+
+/* 2) 월별 빈도표: 행 높이 10% 추가 축소 (padding 10 -> 9) */
+:root.senior .ftable td{padding:9px 12px !important;}
+:root.senior .ftable thead th{padding:8px 12px !important;}
+
+/* 3) 전체목록: NO/일시 너비는 원복, 대분류/중분류는 2배로 확대
+   (컬럼 순서: NO, 일시, 기호, 대분류, 중분류, 회장님 지시사항) */
+:root.senior table.ltbl th:nth-child(1),
+:root.senior table.ltbl td:nth-child(1){min-width:70px !important; width:70px !important;}
+:root.senior table.ltbl th:nth-child(2),
+:root.senior table.ltbl td:nth-child(2){min-width:150px !important; width:150px !important;}
+:root.senior table.ltbl th:nth-child(4),
+:root.senior table.ltbl td:nth-child(4){min-width:460px !important;}
+:root.senior table.ltbl th:nth-child(5),
+:root.senior table.ltbl td:nth-child(5){min-width:520px !important;}
+:root.senior table.ltbl td:nth-child(4),
+:root.senior table.ltbl td:nth-child(5){white-space:nowrap !important;}
+
+
+/* === Senior patch v6 (2026-02-26 요청 반영) === */
+
+/* 1) 개요: 카드 제목(예: R&D·생산·품질 등) 글자색 검정 */
+:root.senior .sum-card .lbl{
+  color:#111111 !important;
+}
+
+/* 2) 월별 빈도표: 우측 지시사항(드릴다운) 박스 너비 1/3 확대
+   - 레이아웃이 flex인 구조(freq-layout: left + right) 가정 */
+:root.senior #tab-freq .freq-layout{
+  grid-template-columns: 1fr 1.33fr !important; /* grid일 경우 */
+}
+:root.senior #tab-freq .freq-right{
+  flex: 0 0 40% !important;      /* flex일 경우 */
+  width: 40% !important;
+  max-width: 40% !important;
+}
+:root.senior #tab-freq .freq-left{
+  flex: 1 1 60% !important;
+  width: 60% !important;
+  max-width: 60% !important;
+}
+
+/* 3) 전체목록: 대분류/중분류 너비를 현재 대비 40% 수준으로 축소,
+      회장님 지시사항(6열) 폭 확대
+   (컬럼: 1 NO, 2 일시, 3 기호, 4 대분류, 5 중분류, 6 회장님 지시사항) */
+:root.senior table.ltbl th:nth-child(4),
+:root.senior table.ltbl td:nth-child(4){min-width:185px !important;}
+:root.senior table.ltbl th:nth-child(5),
+:root.senior table.ltbl td:nth-child(5){min-width:210px !important;}
+:root.senior table.ltbl th:nth-child(6),
+:root.senior table.ltbl td:nth-child(6){min-width:820px !important;}
+
+:root.senior table.ltbl td:nth-child(6) .td-text,
+:root.senior table.ltbl td:nth-child(6){
+  white-space:pre-wrap !important;
+}
+
+
+/* === Senior patch v7 (레이아웃 정렬 수정) === */
+
+/* 1) 개요: '대분류별 구성' 박스가 혼자 튀어나오지 않도록 
+   charts-row 내부 카드 동일 너비/정렬 강제 */
+:root.senior #tab-overview .charts-row{
+  display:flex !important;
+  gap:20px !important;
+  align-items:stretch !important;
+}
+:root.senior #tab-overview .charts-row .chart-card{
+  flex:1 1 0 !important;
+  max-width:none !important;
+}
+:root.senior #tab-overview .charts-row .chart-card:last-child{
+  margin-left:0 !important;
+}
+
+/* 2) 월별 빈도표: 우측 지시사항 박스 너비 30% 증가 (기존 대비) */
+:root.senior #tab-freq .freq-layout{
+  display:flex !important;
+}
+:root.senior #tab-freq .freq-left{
+  flex:0 0 55% !important;
+  max-width:55% !important;
+}
+:root.senior #tab-freq .freq-right{
+  flex:0 0 45% !important;
+  max-width:45% !important;
+}
+
+
+/* === Senior patch v8 (월별 빈도표 폭 재조정) === */
+
+/* 1) 우측 지시사항 박스 너비 15% 확대 (45% -> 52%) */
+:root.senior #tab-freq .freq-left{
+  flex:0 0 48% !important;
+  max-width:48% !important;
+}
+:root.senior #tab-freq .freq-right{
+  flex:0 0 52% !important;
+  max-width:52% !important;
+}
+
+/* 2) 표가 줄어 2026.02/합계가 안 보이는 문제 해결: 
+      좌측 표 영역은 가로 스크롤 허용 + 최소 폭 확보 */
+:root.senior #tab-freq .freq-wrap{
+  overflow-x:auto !important;
+}
+:root.senior #tab-freq table.ftable{
+  min-width: 760px !important; /* 월 5개+합계까지 보이도록 최소폭 */
+}
+
+
+/* === Senior patch v9 (월별 빈도표 전체 컬럼 즉시 표시) === */
+
+/* 1) 고령자 모드에서 월별 빈도표 영역 자체를 더 넓게 사용 */
+:root.senior #tab-freq .content{
+  max-width: 1800px !important;
+}
+
+/* 2) 좌측 표 영역을 충분히 확보 (전체의 65%) */
+:root.senior #tab-freq .freq-left{
+  flex: 0 0 65% !important;
+  max-width: 65% !important;
+}
+
+:root.senior #tab-freq .freq-right{
+  flex: 0 0 35% !important;
+  max-width: 35% !important;
+}
+
+/* 3) 가로 스크롤 제거하고 표 최소폭 확대 */
+:root.senior #tab-freq .freq-wrap{
+  overflow-x: visible !important;
+}
+
+:root.senior #tab-freq table.ftable{
+  min-width: 1100px !important;  /* 2026.02 + 합계까지 한 화면에 */
+  width: 100% !important;
+}
+
+
+/* === Senior patch v13 (기호칸 제거 / 대분류 1줄 / 헤더 통일 / 너비 재조정) === */
+
+/* ── 1) 레이아웃: 표 55% / 지시사항 45%, 전체 2000px ── */
+:root.senior #tab-freq .content{
+  max-width: 2000px !important;
+}
+:root.senior #tab-freq .freq-layout{
+  display: flex !important;
+  gap: 16px !important;
+}
+:root.senior #tab-freq .freq-left{
+  flex: 0 0 55% !important;
+  max-width: 55% !important;
+  overflow-x: auto !important;
+}
+:root.senior #tab-freq .freq-right{
+  flex: 0 0 45% !important;
+  max-width: 45% !important;
+}
+
+/* ── 2) table-layout fixed ── */
+:root.senior #tab-freq table.ftable{
+  table-layout: fixed !important;
+  width: 100% !important;
+  min-width: 520px !important;
+}
+
+/* ── 3) 헤더 th 너비 고정 ── */
+/* 대분류: 120px */
+:root.senior .ftable thead th.th-cat{
+  width: 120px !important;
+  min-width: 120px !important;
+  font-size: 20px !important;   /* 대분류 제목과 동일 */
+  font-weight: 700 !important;
+  padding: 9px 6px !important;
+  white-space: nowrap !important;
+}
+/* 중분류: 130px */
+:root.senior .ftable thead th.th-sub{
+  width: 130px !important;
+  min-width: 130px !important;
+  font-size: 20px !important;   /* 대분류 제목과 동일 */
+  font-weight: 700 !important;
+  padding: 9px 6px !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+}
+/* 기호 헤더 숨김 */
+:root.senior .ftable thead th.th-code{
+  display: none !important;
+}
+/* 월별 칸: 42px */
+:root.senior .ftable thead th.th-mo{
+  width: 42px !important;
+  min-width: 42px !important;
+  font-size: 20px !important;   /* 대분류 제목과 동일 */
+  font-weight: 700 !important;
+  padding: 9px 2px !important;
+  text-align: center !important;
+}
+
+/* ── 4) 대분류 rowspan 셀: 1줄 고정 + 20% 축소 ── */
+:root.senior .ftable tr.rcat-name td[rowspan],
+:root.senior .ftable tbody td[rowspan]{
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  white-space: nowrap !important;        /* 1줄 강제 */
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+  padding: 8px 6px !important;
+}
+/* 대분류 텍스트: 24px의 80% = 약 19px */
+:root.senior .ftable .cat-name{
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+:root.senior .ftable .cat-name > span:last-child{
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+:root.senior .ftable .cdot{
+  width: 8px !important;
+  height: 8px !important;
+  min-width: 8px !important;
+  flex-shrink: 0 !important;
+}
+/* 소계 텍스트: 검정 */
+:root.senior .ftable td[rowspan] .subtotal,
+:root.senior .ftable tr.rcat-name td .subtotal{
+  color: #111111 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+/* ── 5) 중분류 td ── */
+:root.senior .ftable tbody td.sub-name{
+  width: 130px !important;
+  max-width: 130px !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+  font-size: 16px !important;
+  padding: 8px 6px !important;
+  overflow: hidden !important;
+}
+/* 기호 td 숨김 */
+:root.senior .ftable tbody td.sub-code{
+  display: none !important;
+}
+
+/* ── 6) 월별 숫자 td ── */
+:root.senior .ftable td.nc{
+  width: 42px !important;
+  min-width: 42px !important;
+  padding: 7px 2px !important;
+  text-align: center !important;
+}
+:root.senior .ftable .fn{
+  min-width: 24px !important;
+  padding: 2px 3px !important;
+  font-size: 15px !important;
+}
+
+/* ── 7) 지시사항 글자 80% ── */
+:root.senior .drill-list .ditext{
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
+}
+:root.senior .drill-list .ditem{
+  padding: 8px 12px !important;
+}
+:root.senior .drill-hdr h3{
+  font-size: 18px !important;
+}
+:root.senior .dmeta{
+  font-size: 13px !important;
+}
+
+</style>
+</head>
+<body>
+<div class="header"><div><h1>대성쎌틱 회의 회장님 지시사항 통합표</h1><p>2025.10 ~ 2026.02 · 20회 회의 · 363건 지시사항</p></div><span class="badge">363 items</span></div><div class="tabs"><div class="tab active" onclick="switchTab('overview',this)">📊 개요</div><div class="tab" onclick="switchTab('freq',this)">📈 월별 빈도표</div><div class="tab" onclick="switchTab('table',this)">📋 전체 목록</div></div><div id="tab-overview" class="page-section active content"><div class="summary-grid"><div class="sum-card" onclick="goFreq('A')"><div class="bar" style="background:#6b9fd4"></div><div class="codelbl" style="color:#6b9fd4">A</div><div class="lbl">R&D·생산·품질</div><div class="num" style="color:#6b9fd4">85</div><div class="pct">23.4%</div></div>
+<div class="sum-card" onclick="goFreq('B')"><div class="bar" style="background:#c0504d"></div><div class="codelbl" style="color:#c0504d">B</div><div class="lbl">AS∙워런티∙리콜</div><div class="num" style="color:#c0504d">79</div><div class="pct">21.8%</div></div>
+<div class="sum-card" onclick="goFreq('C')"><div class="bar" style="background:#9b7fcf"></div><div class="codelbl" style="color:#9b7fcf">C</div><div class="lbl">마케팅·판매 전략</div><div class="num" style="color:#9b7fcf">115</div><div class="pct">31.7%</div></div>
+<div class="sum-card" onclick="goFreq('D')"><div class="bar" style="background:#4d9e5f"></div><div class="codelbl" style="color:#4d9e5f">D</div><div class="lbl">유통∙채널 관리</div><div class="num" style="color:#4d9e5f">33</div><div class="pct">9.1%</div></div>
+<div class="sum-card" onclick="goFreq('E')"><div class="bar" style="background:#c8883a"></div><div class="codelbl" style="color:#c8883a">E</div><div class="lbl">영업 관리</div><div class="num" style="color:#c8883a">51</div><div class="pct">14.0%</div></div>
+</div><div class="charts-row"><div class="chart-card"><h3>월별 지시사항 추이</h3><div class="chart-wrap"><canvas id="monthChart"></canvas></div></div><div class="chart-card"><h3>대분류별 구성</h3><div class="chart-wrap"><canvas id="catChart"></canvas></div></div></div><div class="chart-card"><h3>월별 × 대분류 누적 현황</h3><div class="chart-wrap" style="height:300px"><canvas id="stackChart"></canvas></div></div></div><div id="tab-freq" class="page-section content"><div class="freq-layout"><div class="freq-left"><div class="freq-wrap"><table class="ftable"><thead id="freqHead"></thead><tbody id="freqBody"></tbody></table></div></div><div class="freq-right"><div class="drill-empty" id="drillEmpty"><div class="icon">👆</div><div>숫자를 클릭하면 지시사항이 나타납니다</div></div><div class="drill-panel" id="drillPanel" style="display:none"><div class="drill-hdr"><div><h3 id="drillTitle"></h3><div class="dmeta" id="drillMeta"></div></div><button class="drill-close" onclick="closeDrill()">✕</button></div><ul class="drill-list" id="drillList"></ul></div></div></div></div><div id="tab-table" class="page-section content"><div class="filter-bar"><input type="text" id="searchInput" placeholder="🔍  지시사항 내용 검색..." oninput="applyFilter()"><select class="msel" id="monthSel" onchange="applyFilter()"><option value="">전체 기간</option><option>2025.10</option><option>2025.11</option><option>2025.12</option><option>2026.01</option><option>2026.02</option></select><button class="cbt active" onclick="setCat('',this)">전체</button>
+<button class="cbt" onclick="setCat('A',this)" style="border-color:#6b9fd4;color:#6b9fd4">A. R&D·생산 </button>
+<button class="cbt" onclick="setCat('B',this)" style="border-color:#c0504d;color:#c0504d">B. AS∙워런티∙리콜</button>
+<button class="cbt" onclick="setCat('C',this)" style="border-color:#9b7fcf;color:#9b7fcf">C. 마케팅·판매 전략</button>
+<button class="cbt" onclick="setCat('D',this)" style="border-color:#4d9e5f;color:#4d9e5f">D. 유통∙채널 관리</button>
+<button class="cbt" onclick="setCat('E',this)" style="border-color:#c8883a;color:#c8883a">E. 영업 관리</button>
+<span class="rcnt" id="resultCount"></span></div><div class="tbl-wrap"><table class="ltbl"><thead><tr><th>No.</th><th>일시</th><th>기호</th><th>대분류</th><th>중분류</th><th>회장님 지시사항</th></tr></thead><tbody id="tableBody"></tbody></table><div class="pgn" id="pagination"></div></div></div><div class="modal-bg" id="modal" onclick="if(event.target.id==='modal')closeModal()"><div class="modal"><button class="modal-close" onclick="closeModal()">✕</button><div class="mmeta" id="modalMeta"></div><h2 id="modalTitle"></h2><div class="mbody" id="modalBody"></div></div></div><script>
+var RAW=[{"no": 1, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "1. 판매 전략 및 영업 구조 개편\n    Sales 전략을 적극적으로 세워 Sales Rep과 Distributor를 공략해야 한다."}, {"no": 2, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "1. 판매 전략 및 영업 구조 개편\n   직영•온라인 판매 체제를 L/A 본사에서 먼저 시작한다."}, {"no": 3, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "1. 판매 전략 및 영업 구조 개편\n    Online + Plumbing 설계 + 교육 콘텐츠’ 삼각 구조 구축하여 \n     Niche Market을 공략하는 현장 Application 기술을 축적하고 공유한다."}, {"no": 4, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "소비자 직접 접근형 온라인 판매 구조로 전환\n   온라인에서 Plumbing 설계•설치도 제공\n   향후 VR/AR 기반 원격 설계 지원 서비스 개발 검토"}, {"no": 5, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "D-2", "cat": "D", "text": "Contractor와 Plumber를 위한 L/A 사무실 Engineering 능력 개발 필요\n   LA 사무실 내 교육장 (비디오 시설 포함) 설치\n   미국 Tech 직원의 설치•A/S 면허 취득 지원"}, {"no": 6, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-1", "cat": "C", "text": "프리미엄 가정용 + 프랜차이즈 (식당·세탁소 등) 상업용 맞춤형 제품 기획"}, {"no": 7, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "2. 수수료 및 재무절차 명확화 \n   Sales Rep과 Distributor 수수료 지급 기준•금액 명확화"}, {"no": 8, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "2. 수수료 및 재무절차 명확화 \nSales Rep과 Distributor 수수료 계약 및 처리 기준\n     ‘VESTA 영업직원 → 회계직원 → 법인장 → 대성쎌틱 대표’ 순으로 결재"}, {"no": 9, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "2. 수수료 및 재무절차 명확화 \n   수수료 내용은 문서화 후 CRM에 입력, 수수료 관리 일원화\n   과거 수수료 관련 서류는 추적•스캔하여 CRM에 보관할 것"}, {"no": 10, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "1. A/S 비용 절감 및 리콜 구조 개선\n   - 부품 교체 중심의 A/S 체계로 전환 (제품 전체 교환 지양)\n   - A/S Expert를 개발 → 교육\n   - Pro Expert를 전국에 2,000 목표로 쌓아갈 것"}, {"no": 11, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "B-2", "cat": "B", "text": "임시 창고 50개 목표 : 10~20대 단위 묶음 선공급으로 운송비 절감\n     ① 리얼타임 (Real Time) 창고 활용 또는 전문대리점의 점주의 차고 이용\n     ② A/S 가능 및 교육장 보유 Distributor의 보유 창고 \n        미국 내에는 소규모 전문 창고업 사업 발달\n     → 전문 소규모 창고 찾아서 전문대리점들과 물류 Network 구성 가능성 검토 \n     ③ CRM으로 임시창고 제품수불을 실시간 트래킹"}, {"no": 12, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-4", "cat": "E", "text": "1. CRM 시스템 구축 및 데이터 정비\n   CRM (Customer Relationship Management) 을 조속한 시일 내에 실가동하여 \n     리콜•A/S 업무부터 우선 적용"}, {"no": 13, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-4", "cat": "E", "text": "1. CRM 시스템 구축 및 데이터 정비\n   EPICO (회계시스템)와 CRM을 연동하여, 매출•리콜•A/S를 실시간 관리하며, \n     비교 검증하여 내부통제를 강화"}, {"no": 14, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-7", "cat": "A", "text": "부품별•시리얼별 실시간 Defect Rate (불량률) 관리\n   - 제품 500ppm, 부품 200ppm 초과 시 경고\n     제품 2,000ppm 초과 시 자동 판매중지 조치"}, {"no": 15, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "3) 원통형온수기 \n   - 하자 보수 일정 앞당길 것"}, {"no": 16, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "D-1", "cat": "D", "text": "4) 기존 Rep. Distributor\n - A/S 의지 확인 신뢰 회복"}, {"no": 17, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "4) 기존 Rep. Distributor\n - 원통형 열교환기 신규 상품으로 소개 – 장래성 전달"}, {"no": 18, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "< 원통형 생산 , R&D > \n  1) 조 이사 주도 전면 재설계 추진\n  2) 조립 용이성•누수 방지•정비성 향상 중심으로 리디자인 \n  3) R&D팀의 메카니컬 구조 검토 프로세스 정례화\n  4) 모든 불량 사례를 EKFF 리스트로 기록 (연구소 포함 전 부서 공통)"}, {"no": 19, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "1. 미국 지사 회계•자금 관리 책임 구분 명확화\n  1) 지사장 구두지시로 조직이 운영되어서는 안됨 \n  2) 명시된 규정에 따라 자금과 회계처리 되어야 함"}, {"no": 20, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "1) 미국 지사장 급여, 수당 관련 사항은 한국 본사 기준•환율 적용 기준 명시\n  2) 월 1,000불 추가 수당 지급 (약 3년 한시)\n  3) 환율 및 지급기준 명시, 회계책임자 승인 필수"}, {"no": 21, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "A-2", "cat": "A", "text": "< 생산, R&D >\n 2) 내구성 시험 결과\n1. 내구성 결과만으로 안심하지 말고 필드 및 AS 현장의.모니터링을 강화할 것\n2. K-1.6~2.0 Type에서 동일 현상이 발생할 경우 즉각 보고할 것\n3. 재질 변경에 따른 효과를 .실제 현장 피드백으로 입증할 것"}, {"no": 22, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "E-4", "cat": "E", "text": "< 제품, 고객관리 > \n2. CRM 시스템 구축\n1. 10/16일부터 리콜이 시작되니 차주 월요일부터 불완전하더라도 CRM 정식 가동할 것\n2. .문제 발생시 이해수 이사로부터 .실시간 피드백을 받아 즉시 수정할 것"}, {"no": 23, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "B-3", "cat": "B", "text": "< 리콜 > \n1. 법인 가용재고 중 1.6세대 193대도 쉽백할 것\n2. 쉽백 제품은 모두 3세대 HE, PCB로 교체\n3. 교체된 부품에 대한 체크리스트를 기록∙관리할 것\n4. 3세대도 물/가스 시스템의 약점을 근본적으로 보완해서 수출할 것"}, {"no": 24, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "< 생산, R&D > 4. VX/VXP 필드테스트 현황 \n1. 1차 발송분중 법인 재고 19대는 윤활유 세척 및 오링 씹힌부분 개선하여 출고\n2. 2차 발송분 147대는 한국으로 쉽백하여 문제 사항 모두 개선하여 출고"}, {"no": 25, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "5. VXP 분해 조립 확인사항  4) 연소실내 이물질 (세라믹보드 보호 비닐) 확인 \n   3. 쉽백 제품도 세라믹보드 내 보호 비닐 탄 부분을 제거할 것\n   4. 발멕스에 해당 내용 통보할 것"}, {"no": 26, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "1) 온라인 비즈니스 시작   온라인 + Plumbing Engineering 모델 병행 \n - 단순 온라인 판매에서 벗어나 설치∙배관 지원까지 포함한 통합 비즈니스 모델 추진 \n - 제품 뿐만 아니라 어플리케이션을 개발하고 고객 맞춤형으로 엔지니어링을 제공하는 서비스 \n - 한국 제품 모델 개발 + 미국 제품 설치 및 Plumbing 지원 \n - 한국형 전문 대리점을 미국에 도입하여 우리 제품만 취급하는 전속 딜러를 육성해야 함"}, {"no": 27, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "D-2", "cat": "D", "text": "3) Plumbing 설계업자와 긴밀한 네트워킹 구축 (한 지역을 우선으로 진행)\n  ① Plumbing 협회, License 조직, 엔지니어들과 만나서 협의할 것\n  ② Real Time에서 일을 잘하는 작업자를 Pro 등록\n  ③ TX 내 Distributor, Contractor 밑에서 일을 잘하는 작업자들을 Pro로 등록 \n  ④ VXP로 명성을 얻은 후 Pro를 대성의 전문 대리점으로 육성"}, {"no": 28, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "당사 전문대리점으로 많은 부품이 필요 없으므로 Pro의 차고 (garage)를 부품 창고로 활용\n판매 활성화 시 재고 보유가 어려우므로 보관/출고만 전문으로 하는 업체를 적극 활용하는 비즈니스 모델 검토"}, {"no": 29, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "3. 시장 타깃 \n  1) 우선적으로 LA와 니치 마켓에 집중하여 모델 성공 시 인근 지역에 확대하자 \n  예) 에어비앤비, 음식점, 세탁소. 애견∙가축시설, 체육시설∙피트니스센터, 콘도∙레지던스 개발사"}, {"no": 30, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.14(화)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "< 생산, R&D >\n1. 온라인 비즈니스를 하기 위해서는 제품의 detail한 면까지 완벽해야 함\n   21세기에 맞는 제품을 만들어야 함"}, {"no": 31, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "A-2", "cat": "A", "text": "< 생산, R&D > \n1. VXP, VTP 수전 개수별 변화 실험 2) 유량에 따른 출탕온도 변화\n ③ 온도편차가 좋아진 원인 \n   - 원통형 열교환기가 담고 있는 유량이 많음\n   실험을 통해 유량 계산식을 만들어 볼 것  \n   논리를 개발하여 Sales Point로 잡을 것"}, {"no": 32, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "B-3", "cat": "B", "text": "3. 리콜 현황 보고 2) 미국법인 콜센터로 설치업자 3곳이 지역 내의 리콜 수행 의사를 밝힘 \n   해당 설치업자를 지원해주고 HE 교환 교육 실시\n   일을 맡겨서 Pro로 키워나갈 것 \n   추후 우리 전속 대리점으로 만들 수 있음"}, {"no": 33, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "5. 쉽백 현황 \n   1.5세대, 1.6세대 모두 한국으로 반품시킬 것 \n   3.0세대 열교환기로 교체"}, {"no": 34, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "D-2", "cat": "D", "text": "< 영업, 마케팅 >\n지역 내 Plumber, Contractor와 협력하면서 그들이 이익을 낼 수 있도록 협업 (설치 + AS + 제품판매)\nPlumber 조직화 → 전문 대리점으로 키울 것 \nPlumber의 garage 사용 → 전문창고 사용\n전문창고 지역별로 Map을 만들 것"}, {"no": 35, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "5. 온라인 비즈니스 개발 \n   온라인 비즈니스 비중을 점차 늘려 나갈 것"}, {"no": 36, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "< 영업, 마케팅 >\n2. 소비자가 워런티 대신 원통형 온수기 구매를 선택하기 위한 방안 검토 \n   1) 판매가격 range를 검토할 것"}, {"no": 37, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "< 영업, 마케팅 >\n2. 소비자가 워런티 대신 원통형 온수기 구매를 선택하기 위한 방안 검토 \n     2) 마케팅 포인트 \n      - 원통형온수기의 기술적 장점\n      - 온수기를 교체하면 plumbing 작업이 필요없어 소비자가 신규 설치보다 싼 가격에 새 제품 구매 가능 \n      - 기존 3~4년 사용한 제품이라도 교체 시 10년 연장 A/S 보증 \n      - 프로모션 기간이 지나면 U$2,000으로 인상 예정"}, {"no": 38, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "E-4", "cat": "E", "text": "3. CRM에 리콜을 입력할 수 있도록 계속 업데이트"}, {"no": 39, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "3. 원통형 온수기 판매 프로모션\n  1) 현재 147대와 교체한 19대 총 166대로 빨리 시장에 설치할 것 \n  2) 10대 단위로 원통형온수기를 미국 전역에 샘플로 뿌릴 것 \n  3) 8천~1만대를 갖고 승부를 본다. \n     Plumber와 Contractor들을 Pro로 만들고 대리점 500개 만든다 \n     CRM으로 특별관리 \n     온라인 비즈니스까지 연결 \n  4) 샘플 제공 및 설치에 대한 반응을 Sale Rep과 Distributor별로 체크할 것"}, {"no": 40, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.21(화)", "month": "2025.10", "code": "E-1", "cat": "E", "text": "< 조직관리 > \n1. 미국지사 신규 직원 채용 \n1) 먼저 판매전략을 세우고 움직이는 것 보고 채용여부 판단 \n2) 현재 인원으로 온라인 비즈니스 시작 \n  3) 지사장은 A/S에만 매달리지 말고 판매에도 신경 쓸 것 \n2. 노성훈 과장이 1~2달 LA에서 업무 보조해 줄 것"}, {"no": 41, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "1. TX 지역 AS 현황 보고 \n온라인 광고 문안에 ‘천장에 설치할 경우 위험하며 안전검사 시 힘들다’는 표현을 검토할 것 \n천장 설치작업은 안전상 이유로 되도록 거부할 것\nHEX 교체 시 작업별로 소요시간 분류해 볼 것"}, {"no": 42, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "1. TX 지역 AS 현황 보고 \n∙ 일부는 빈대, 말벌 등 출몰하여 작업 주의 필요 \n  빈대약 보급할 것"}, {"no": 43, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "HEX 현열과 잠열 사이 누수 현상 \n  설계변경 전에 출고된 제품은 약 3만대로 향후 큰 문제가 될 가능성에 대해 사전 검토할 것 \n  쉽백 제품들도 모두 패킹구조 변경하여 보내줄 것\n  EKFF 리스트 등록하고 AS 관리대상 및 CRM에 등록하여 항목별로 계속 관리할 것"}, {"no": 44, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "일부 Plumber의 부품 조립 실수로 통신 불량\n  설치 방법에 대한 개선 필요 \n  본사가 애니메이션을 만들어서 보급할 것 \n  Plumber용 EKFF를 정리 누적해 나가야 함 \n  MVIT 방식으로 사진을 찍어서 보내주도록 \n  설치 AS 시 모바일폰 체크리스트에 뜨도록 조치"}, {"no": 45, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "응축수 필터 막힘에 의한 역류 현상\n → 응축수 필터 교체 조치 \n‘응축수가 나오면 배수관으로 바로 연결하시고 필터를 쓰지 마십시오’ 인스트럭션 추가할 것"}, {"no": 46, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "흡기 연통 설치 불량으로 온수기 내부 빗물 유입\n  해당 케이스도 사진으로 인스트럭션에 추가할 것"}, {"no": 47, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "2. HEX Labor fee \n천장 설치를 거부하는 방안을 검토할 것 \n구조 설계하는 업자들과 설치장소를 바꾸는 것을 협의할 것"}, {"no": 48, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "HEX 교체 대신 원통형 제품으로 교환 판매할 수 있도록 소비자 가격을 빨리 결정할 것"}, {"no": 49, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "필드테스트를 빨리 해서 잔고장을 없앨 것 \nAS하기 좋도록 설계 변경할 것"}, {"no": 50, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "E-1", "cat": "E", "text": "지사 회계직원 교육 후 교체 여부 결정할 것 \n영업직원은 저울질 하는 사람은 필요 없으며 튀는 사람을 채용해야 함"}, {"no": 51, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "< 영업, 마케팅 >\n1. 세탁소에 온수기 사용 시 온도 80℃의 경우 캐스케이드, 벤치 개수 검토 실험할 것 \n  실제 사용하는 사람들의 의견을 계속 묻고 어플리케이션을 모아가야 함"}, {"no": 52, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-5", "cat": "C", "text": "2. 룸컨트롤러 (Honeywell → Verdant) 변화에 주목\n   Plumber와 협력하여 ‘룸컨트롤러 + 온수기’ 공동영업하는 방안 검토"}, {"no": 53, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "- 원통형의 장점을 광고\n   ① 샌드위치 현상 거의 안 생김 \n   ② Tab을 5개까지 사용 가능"}, {"no": 54, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "소비자들이 Distributor에게 설치를 요청할 수 있을 때까지 온라인에 집중 \n Plumber 설치 케이스가 10~20개 생기면 프로, 엑스퍼트 전문 대리점에 온라인 설치"}, {"no": 55, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "4. 워런티 (AS) 처리 현황 집계 \n - 2017년부터 생산된 1세대, 1.5세대, 1.6세대, 2세대, 3세대 별로 누계 파악할 것\n - AS 처리현황을 누수 등 케이스별, 지역별로 분류하여 관리할 것"}, {"no": 56, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "4. 워런티 (AS) 처리 현황 집계 \n - AS 비용을 현재의 50%로 줄일 수 있도록 Plumber를 Pro로 만드는 교육\n - 향후 AS 설비, 교육할 수 있도록 모든 자료를 모아줄 것"}, {"no": 57, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "4. 워런티 (AS) 처리 현황 집계 \n   워런티가 판매물량의 30% 혹은 어느 정도 수준에서 끝날지 예상해야 본사에서 자금을 준비하며 대응할 수 있음"}, {"no": 58, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "A-1", "cat": "A", "text": "< 생산, R&D > \n1. 경수 관련 경쟁사 매뉴얼 조사 \n  - 워런티 적용 제외 여부 (당사 X, 경동 O)\n  - 경수 레벨별 관리방법  (당사 X, 경동 O)\n  - 자체 필터 여부 (당사 X, 경동 O)\n  신규 판매분부터 해당 문구 넣을 것 \n  온라인 광고 시 반드시 필터사용 표시할 것 \n  원통형에도 매뉴얼 교체할 것"}, {"no": 59, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "3. VXP 원통형온수기 필드테스트 현황 \n  온라인 마케팅 시작할 것 \n  $1,000을 받고 1:1 교환하는 보상판매에 대해 소비자 반응을 체크하면서 원통형 판매 가능성을 파악할 것"}, {"no": 60, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "1. 원통형온수기 영업 전략\n   5백대~1천대까지 시장에 보급하여 소비자 반응과 향후 판매수준을 파악해 볼 것 \n - 20만대까지 판매할 수 있도록 힘써줄 것 \n - 향후 원통형 온수기 (가스회사 보조금)과 히트펌프 (전기회사 보조금)를 단독주택에\n   설치하면서 두가지 보조금을 얻을 수 있도록 영업"}, {"no": 61, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "2. 미국 보일러 시장 \n - K 3.0세대 보일러, K 3.0세대 콤비 (난방+온수) 각각 인허가 신청 들어갈 것 \n - 미국 보일러 회사 Granite과 같은 업체 50개 추정되므로 비슷한 보일러 업체를 \n   온라인으로 찾아볼 것"}, {"no": 62, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.28(화)", "month": "2025.10", "code": "C-5", "cat": "C", "text": "3. 어플리케이션 추가 조사\n - 에어핸들러를 설치했을 때 보일러와 온수기로 연결해서 사용하는 기술 검토 \n   나비엔의 관련 어플리케이션 조사할 것 \n - 보일러 어플리케이션 (온돌 난방) : 목욕탕, 아이들방 (양탄자 바닥), 개 사육장, 도축장\n - 리모델링 전시회 참석해서 원통형 어플리케이션 추가 조사할 것"}, {"no": 63, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "1. TX AS 현황 #191 외부순환 온도 설정 및 재가동 사용법 교육\n  콜센터 AS 응답 매뉴얼에 추가할 것"}, {"no": 64, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "1. TX AS 현황 #192 온수 헌팅 및 캐스케이드 외부순환 오류: 잘못된 PCB 설치 현장 (3대)\n   아파트 3세대에 3대 케스케이드 설치되어 있는 예 이런 어플리케이션 현장을 집중 공략할 것"}, {"no": 65, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "1. TX AS 현황 #193 PCB, 가스밸브 교체 후에도 점화불량 현장\n  공장에서 케스케이드 2대로 tab 10개 열어서\n  콜드샌드위치 (온도편차) 실험하고 세일즈포인트로  잡을 것 (일본 미국 나비엔도 해결하지 못 함)"}, {"no": 66, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "HEX 교체시 800불, 제품교환 1,240불 비용이 소요되지만 아직까지 지역별 통계가 잡히지 않고 있음 \n지도에 현장을 표시해서 지역별로 어떤 어려움이 있는 지, 세대별 AS 발생비율, 시간 그래프로 관리"}, {"no": 67, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "2. 온수기 워런티 현황 \n  다음 보고부터는 세대별로 구분할 것 \n  지역별로 워런티 현황 검토 : 본사 \n  CRM에 과거 데이터 입력할 것 : 이해수 이사"}, {"no": 68, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "B-1", "cat": "B", "text": "3. 쉽백 현황 \n - 온수기 2,603, 보일러 898 총 3,501 입고 완료 \n - 수리 후 12월 중 법인판매재고(3개월) 감안 출고 스케줄 협의 예정 \n  관세납부 기한 6개월 이내에 내보내도록 할 것"}, {"no": 69, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.10.30(화)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "6. VXP 원통형 마케팅 문구\n  제품 디자인에 링 모양   검토할 것\n  국내 판매 15만대/년의 5배를 미국에서 파는 것을 목표할 것 \n  무상판매 1천, 프로모션 할인판매 1천대까지 검토 \n  교체판매 시에 소비자 10개월 할부 카드결제 및 100불 인센티브 지급, 은행에 카드채권 판매 등의 \n  프로그램 구조화 검토할 것"}, {"no": 70, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-3", "cat": "B", "text": "1. 리콜 현황 보고\n판매정보와 AS 정보 1,700여건에 대해 리얼타임이 이메일주소를 어떻게 확보했는지 확인할 것"}, {"no": 71, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-3", "cat": "B", "text": "1. 리콜 현황 보고\n다음 세가지 정보를 통해 CRM 완성도를 올릴 것 \n① Distributor/Contractor의 최초 등록 소비자 주소② AS 클레임 기록 \n③ 리콜 소문을 듣고 소비자가 직접 추가 요청"}, {"no": 72, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-1", "cat": "B", "text": "2. 온수기 워런티 현황 \n   누적제조 43,575 중 반품 4,970 (불량률 11.4%)\n   제품 불량률 2,000ppm 초과 시 비상체제 검토 필요\n   12,000ppm 상당히 높은 수치로 철저한 관리 필요"}, {"no": 73, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "E-3", "cat": "E", "text": "3. 판매 가용재고 및 판매현황 \n향후 가용재고와 쉽백 제품 두 개로 구분해 줄 것"}, {"no": 74, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-1", "cat": "B", "text": "AS가 들어온 물량은 제외한 후 총 월별 판매대수를 파악\n‘총 판매대수 (세대별 잔존수량) X AS 기간 잔여 총 개월 수’ = ‘총 배수’ 를 계산한 후 \nAS 발생률을 비교해보면 피크치 도달여부를 판단 가능\n1세대를 지나, 우리가 2~3만개 올라갈 때 1.5~1.6세대부터 제일 많이 판매됨 \n1세대는 거의 Out 되어 가려하고 1.5~1.6 세대 잔존수량이 얼마나 남았는 지 \n세월이 가면서 얼마나 줄어들었고 반품이 얼마나 나오는지 등 \n앞으로 경향치까지 예측 가능한 지까지 알아봐야 한다."}, {"no": 75, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "온수기 다락 설치의 경우 위험하고 AS가 힘들기 때문에 설치업자가 비용을 50% 더 받을\n수 있도록 소비자에게 미리 고지할 것"}, {"no": 76, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "4. VXP 원통형 온수기 필드테스트 현황 \n  같은 장소에서 설치할 경우 Sample의 의미가 없고 Reputation을 만드는 데 큰 도움이 되지 않음 \n  147대도 서로 다른 지역으로 갈 수 있도록 조치"}, {"no": 77, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "5. VXP 프로모션 판매계획 \n  우선 10대씩 10군데에 빨리 갈 수 있도록 조치\n  10대씩 50군데에 가는 것이 좋을 것"}, {"no": 78, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-6", "cat": "C", "text": "A.O.Smith의 부품공급업체에 따르면 원통형 HEX를 1년째 테스트 중이지만 양산이 지연되고 있음 \n  A.O.Smith의 개발 능력과 생산관리 능력을 고려할 경우 잘못된 정보일 가능성도 있음 \n  정보를 따라 들어가야 하며 특별관리할 것"}, {"no": 79, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-2", "cat": "C", "text": "On-line Station 만들 것 \n  국내 대리점에 제공한 쎌틱 자체에서 만든 원통형 광고 영상을 온라인에 바로 올릴 것 \n  가격을 정한 후 Distributor에 내보내고, 특히 Distributor가 없는 지역에는 plumber에게\n  밀어줘서 전문 대리점까지 만들어간다.   \n   빨리 온라인을 통해서 홍보하고 소비자에게 각인시킬 수 있는 원통형 브랜드를 만들 것. \n   50만대까지 팔 생각으로 만들어 갈 것"}, {"no": 80, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-1", "cat": "C", "text": "리모델링 시장 (체육시설, 피트니스센터, 콘도∙레지던스, 음식점∙세탁소∙애견∙가축시설 등 \n상업시설) 에 집중하며 리모델링 전시회, 리모델링 잡지가 지역별로 있으니 파악할 것 \n신규 시장 단독주택, 연립주택의 온수와 난방 설계에 대한 정보를 모아줄 것 \n리모델링 시장 또한 어떤 식으로 온수와 난방을 보수하는지 정보를 모아줄 것"}, {"no": 81, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "E-1", "cat": "E", "text": "영업사원들을 채용할 경우 1명은 신축 시장 0.5명+기존 Distributor/Contractor 0.5명 투입 \n1명은 리모델링 시장 0.5명+기존 Distributor/Contractor 0.5명 투입"}, {"no": 82, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "E-1", "cat": "E", "text": "리오와 제이크를 원통형과 3세대에 대한 트레이너로 교육시킬 것  \n원통형이 시장이 올라서면 트레이너를 더 고용하고 리오와 제이크 중심으로 트레이닝이 \n되어 가야 하므로 트레이너 교육 프로그램을 만들어 줄 것."}, {"no": 83, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "B-1", "cat": "B", "text": "AS 건수 중 HEX 교체, 제품 교체건 계속 별도 보고"}, {"no": 84, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "소비자가 제품을 원통형으로 교체할 수 있도록 가격정책 결정해 줄 것\n판매가 U$2,800의 1/3 가격으로 소비자가 기존 1.5~1.6세대를 원통형으로 바꾼 후 \n소비자가 소문을 낼 수 있도록 유도할 것"}, {"no": 85, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "< 천진법인 설비증설 보고 > 1) 코일링 LOPE 납품사 중국 OMS 설비\n‘반자동 거치대’ 와 ‘코일링’ 설비 견적 1.5억원\n1.5억원에서 금액을 낮출 것"}, {"no": 86, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "3) 세아제강 포항공장 방문 건 \n  용접방식 확인 : 레이저, 전기저항 등 \n  응축수 배수구 용접 붙이는 작업에 대한 검사 방법 결정해 줄 것"}, {"no": 87, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "원통형 오링 씹히는 것 147대 중에서 2% 하자발생\n2만ppm이 넘는 수치로 루스한 상황 \n육안 확인만으로 안되고 용접검사 방식 결정할 것"}, {"no": 88, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "국내 원통형 판매 \n매달 판매실적을 영업보고 시 보고하도록 할 것"}, {"no": 89, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-2", "cat": "A", "text": "HEX SS 두께가 온수기 1.2T로 보일러 1.0T보다 굵음 \n발멕스 보일러 HEX SS 두께는 0.7T\n언제 0.8T까지 도전할 지 실험실 테스트하면서 언제까지 결론 내겠다 스케줄 만들어 줄 것"}, {"no": 90, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "원시옹 (조관), OMS (코일링), 포밍 (대성) 조합으로\n설비를 만들어 보고 (국내 포밍 회사들까지 확인) \n국내에서 설비를 만들어서 협력기차에 한 대 놓는 가정 하에 우리가 원자재를 보내서 임가공을 시킬\n경우 미국 관세관계가 어떻게 되는지 알아볼 것 \n미국 관세정책에 따라 직접 보내던지 임가공 후 보내던 지에 관한 판단을 지금부터 같이 해 나가자."}, {"no": 91, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "C-6", "cat": "C", "text": "대우보일러 고의부도 파산신청 건 보고 \n  대리점의 경우 예전 특판과 관로공사 따라가는   대리점 특판 두 가지로 나눠서 보며 \n  우리 영업에서 어떻게 체크를 할 지 결정해 주도록. \n  우리 쪽으로 들어오던지 우리가 바로 치고 들어가던 지 할 것"}, {"no": 92, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.06(목)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "조관기 제조회사 중국 조파 소개 \n  자동화 정도와 기계 구성이 잘되어 있는지 원시옹과 비교하면서 발주하도록 할 것\n  납기일이 3~4개월로 코일링 기계 먼저 발주하고 \n  조관기계도 충분히 검토하여 빨리 발주낼 것"}, {"no": 93, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "6. VXP 유상 교체판매 방안 (Warranty 발생시)\n ∙ VXP 교체판매 금액 : $400\n검토해보고 테스트해가며 확대할 것  \n운반비 $350을 감안할 경우 VESTA회수는 -$190 운반비를 포함하여 검토해 줄 것"}, {"no": 94, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "7. VXP 프로모션 및 판매계획 (2026년)\n ∙ 7대 구매시 3대 무상 ($1,450 30% 할인 $1,015)\n좋은 아이디어로 생각되니 진행해 볼 것 \n 단, 할인판매는 부정부패가 나올 수 있고 Distribu-tor의 장단에 넘어갈 가능성이 있으니 조심"}, {"no": 95, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-2", "cat": "C", "text": "온라인의 목적은 온라인을 통해서 판매하는 것이 아니라 소비자에 우리 제품을 노출시키는 데 있다. \n온라인을 미국 사회에 제품을 광고하는 베이스로 만들고, 파급효과가 있도록 디자인과 케이스를 만들자."}, {"no": 96, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "D-2", "cat": "D", "text": "한인 설치업자들이 3~5명 합쳐서 자신 집의 garage를 이용해서 회사를 만들고, 법률검토와 사무관리,  \n 연대보증, 소규모 상거래 보험 혹은 적극적인 보험 가입 등을 우리가 세팅해주는 방안에 대하여 앞으로\n 2년간 시간을 갖고 논의해 줄 것"}, {"no": 97, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "9. 온수기 설치환경 ∙ 다락방 설치 사유 \n다락에 설치하면 AS 비용이 올라간다는 사회적인\n 통념을 만들어 가보자. 새로운 제품을 소개하면서\n 신선한 사회적인 충격을 줄 수 있는 세일즈 포인트"}, {"no": 98, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "10. VXP 마케팅 \n  유럽형 원통형열교환기가 미국 온수시장에 왜 사용되지 않았을까에 대한 의문을 갖고 계속 조사할 것"}, {"no": 99, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "10. VXP 마케팅 \n   대성은 그 동안 K세대부터 계속 품질 문제가 있어 이미지가 좋지 않으므로 \n   제품 커버부터 Ring이라는 완전 새로운 개념으로 이미지 쇄신을 하자."}, {"no": 100, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "10. VXP 마케팅 \nRing을 앞에 붙여서 소비자에게 광고하기 위해 온라인을 빨리 진행할 것 \nAI 광고까지 올리고, 검색창의 광고, 온라인의 광고도 우리가 필요한 지역별로 직접 게시할 것"}, {"no": 101, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "E-4", "cat": "E", "text": "< CRM 관련 수정사항 보고 > \n설치가정 구분 : 개별세대 or 집단세대, 영업소 등 목조, 건축년도, 건축회사, 설계사 등 자료 모을 것"}, {"no": 102, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "< 인디애나 폴리스 현장 방문 보고 > \n  현장 : 온수 상향 배관, 직수 하향 배관 연결 \n           모니터링 확인 시 콜드샌드위치 재현 안됨\n배관 매뉴얼에 넣을 것"}, {"no": 103, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "2. 현장#2 : VTP LPG 2세대 1대  조치 : λ값 조정 (1.15 → 1.25, 공기량 증대)\n   λ값 표준값 예외 사항으로 EKFF 등록 후 조치한 \n 사항에 대하여 특별관리대장 관리할 것"}, {"no": 104, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "3. 현장#3 : VTP 2세대 Cascade 3대\n분배기(매니폴드)가 앞으로 주사업 대상이 될 것 \n 분배기 – 서큘레이션 – 매니폴드 - 각방 온도조절기\n 열발란스에 따라 움직이는 온도조절기에 대해 관심갖고 어플리케이션에 적용해 볼 것"}, {"no": 105, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "4. 현장#4 : VXP 2대\n  장소 : 멕시칸 식당 주방옆 식자재 창고\n  좋은 케이스로 기준치를 찾아가며 특별관리할 것 \n 시스템 다이어그램 우리 어플리케이션에 등록할 것\n 표준안을 만들어 공급할 수 있도록 준비할 것"}, {"no": 106, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "주택 지하실에 들어갈 경우 난방기기, 매니폴더, 온도조절, 레귤레이션 등 시스템에 대해 항상 파악할 것 \n이야기의 출발점은 지하실을 갈 때부터 생김. 온수와 난방에 대해 꼭 확인하고 정보를 모아갈 것"}, {"no": 107, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.11.20(목)", "month": "2025.11", "code": "C-1", "cat": "C", "text": "신규 주택 전시회, 개보수 전시회 가보고 그쪽 시장 Segement 어떻게 접근할 지 \n 판매정책, 광고방법을 온라인에서 만들어 갈 것 \n 온라인에서 정보를 바로 받을 수 있도록 하고 정보를 공유할 것 \n 최종 소비자도 주택 설계업자도, Plumber도 볼 수 있도록 만들 것"}, {"no": 108, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "A-2", "cat": "A", "text": "< Ring 콘덴싱 온수기 품질 이슈> 1. 온수 콜드샌드위치 발생 \n ∙ Tankless의 단점으로 K-3세대도 같은 이슈 있음\n  온도편차가 실제로는 10℃ 이상 나올 수 있으므로 온도별로 테스트해 볼 것 \n ∙ 법인 재고분 147대도 즉시 판매정지 시키고 \n   쎌틱본사 직원이 바로 출장가서 현장에서 \n   PCB 교체 작업할 수 있도록 조치할 것"}, {"no": 109, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-3", "cat": "B", "text": "1. 리콜 현황 보고 \n .월별 처리건수, 누계 처리건수 표시해 줄 것\n .매달 바로 실제 숫자가 증가, 감소하는 지 \n .처리한 후 잔고가 얼마나 남았는지도 체크할 것"}, {"no": 110, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ Distributor 반품 처리\n 일반적으로 제품을 돌려받고 (-)매출이 발생하지만\n 출하 제품이 없을 경우 현금을 원하는 업체에게 현금을 줘야 하는 상황이 생김 \n→ 이호준 과장 혼자 결정하지 말고 물건 반품은 본사 책임자가 현장에서 주재할 때 \n   확인하여 이호준 과장이 받아주고 \n   현금 크레딧은 본사 정부장과 이해수 이사의 확인을 받은 후 고대표가 최종 결정할 것"}, {"no": 111, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ Warranty 처리 \n 현재 대부분 신품으로 교체해주고 있음 \n 물건을 바꿔줄 때 운반비 등 여러가지 비용이 더  많이 발생하므로 비용 확인하는 방법, 통제하는 \n 방법을 빨리 안착시킬 수 있도록 할 것"}, {"no": 112, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ Warranty 처리 \n∙ 운반비 절감 방안을 빨리 찾아낼 것 (특별관리)\n- Distributor에 한번에 물량 5~10개를 동시에 발송 \n- Warranty 집중지역에 Pro를 결정해서 Pro 창고에 보관하면서 처리하는 방법 등"}, {"no": 113, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ Warranty 중 일반AS도 전량 교체 해주는 문제 \n   AS가 되지 않는 지역은 보일러를 팔지 않는 정책이  나와줘야 한다. \n ∙ 보일러 ODM 거래선 외 AS가 완벽히 갖춰진 것 확인한 후에 판매해야 하며 그렇지 않은 지역에는 \n    지금부터 판매중지할 것"}, {"no": 114, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ Warranty 발생지역 및 미국 수질현황 \n∙ 일반적인 경수지역 지도이며 실제로는 지역마다 경수가 균일하지 않고 다른 상황 \n  사전에 지역별 경수 확인 절차를 거칠 것"}, {"no": 115, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-4", "cat": "B", "text": "6. TX 지역 AS 현황 \n ∙ 연수기를 반드시 설치하도록 하고, 사후관리할 것"}, {"no": 116, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "C-5", "cat": "C", "text": "∙ 호텔 케스케이드는 영업대상이므로 모텔 방갯수\n  건설사, 설계사, 시공사 등을 파악하여 집중적으로 공략하면 우리가 니치 마켓을 가질 수 있다."}, {"no": 117, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "∙ 전체 Warranty 중 전체 교체, 일반 AS, TX AS을 구분 정리하고 안착될 때까지 최대한 지도할 것\n   열교환기를 전체 교체하지 않고 AS 해준 이력과 어떤 Distributor와 Plumber가 잘하는 지 기록을 계속 \n   계속 따라가고 본사에서도 자료를 모을 것"}, {"no": 118, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "D-2", "cat": "D", "text": "Distributor와 AS 데이터를 모으는 것이 앞으로 Pro를 찾고 Expert를 찾는데 가장 중요한 자료가 되므로\n   이 자료를 활용해서 프로그램을 만들고 Expert를 확대해서 특별히 키워나갈 수 있는 방법을 찾아볼 것"}, {"no": 119, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "B-4", "cat": "B", "text": "∙ CA와 TX 지역은 구체적인 AS 내역을 LA 사무실에서 파악을 해주고, 나머지 지역의 보고서를 분석하는 \n 것은 본사에서 직접한다."}, {"no": 120, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "경비지출 기준이 불확실하거나 달라질 수 있는데 빨리 경비지출 기준을 만드는 것을 합의해야 한다. \n경비 사용에 불명예스럽거나 원칙이 없이 움직이면 안되고 투명하게 관리되어야 한다."}, {"no": 121, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "E-1", "cat": "E", "text": "이런 시기에 우리가 모든 기준을 갖고 일하고 그 기준에 따라 판매 안 할 것은 판매를 안 하고, 판매할 \n사람에 대해서는 교육장을 만들어 Plumber를 중점적으로 교육받도록 하고 그 밑에 일하는 사람이 \nExpert와 Pro가 되는 것에 본사가 개입해서 지원해 줄 수 있는 체제를 빨리 만들 것"}, {"no": 122, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "∙ Ring을 판매하면서 간단한 AS가 생기면 현장에서 교육을 통해서 바로 뛸 수 있는 Plumber 조직을 가진 \n Distributor 지역만 팔아야 한다. \n 보일러는 24시간 바로 AS가 안되는 지역에는 Distributor가 열심히 한다고 해도 판매하지 말 것 \n 체계적인 보일러 AS가 되는 지역의 Distributor에만 팔아야 하며 단순히 재고만 갖고 Plumber AS를 관리\n 하지 않는 Distributor와는 더 이상 거래하지 않는다."}, {"no": 123, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "E-1", "cat": "E", "text": "∙ VESTA 회계직원은 단순한 회계 담당이며, 규칙과 기준이 만들어지면 그대로 일하고, \n 현재 정부장이 회계전표를 같이 보고 있으므로 특별한 고도의 회계는 필요없는 조직\n 쎌틱본사에서 한번씩 출장가서 회계직원 교육을 시킬 것"}, {"no": 124, "title": "대성쎌틱 회의 주요 지시사항 (VESTA 영업∙마케팅, 리콜, 생산∙R&D)", "date": "2025.12.09(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "본사 감사인 LPMG LA지사의 도움을 받아 우리 판매 물량이 늘어나면서 회계제도를 어떻게 조직화하고\n  어떻게 사람을 교육시키고 어떻게 인원을 보강하는지 협의하고 KPMG에서도 사람을 추천할 수 있을 것"}, {"no": 125, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "• Distributor, 고객들마다 보상단가가 다르기 때문에\n 개별 송금건에 대해 회계와 해당계좌로의 송금여부\n 등의 정확한 기록을 따라가야 한다."}, {"no": 126, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "① 2주 이상 인출하지 않는 계좌 1차 연락\n   4주 이후에는 지급정지 - 제도화\n② 지출이력이 Credit측 확인 후, e-mail 확인 후 출금 제도화\n③ 수표 아니고 미국은행구좌 신설하여 T/C 송금 제도화"}, {"no": 127, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "2. A/S 워런티 정산 비용\n• Distributor, 고객별로 자세한 내역을 정리할 것 \n  관련 자료를 모두 준비해서 다시 회의하도록 할 것"}, {"no": 128, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-2", "cat": "B", "text": "• 운송비 절감 방안을 본사가 개입하여 찾을 것 \n  운송비 절감 효과를 많이 낼 수 있는 방법을 찾으면서 AS망을 조직화해 나가야 한다. \n ① 1대 대신 3~5대씩 모아서 발송\n    현재 흐름 상 교환품이 대세이므로 수량을 모아서 Distributor에 보낼 것\n ② Realtime 일 잘하는 Pro들을 활용할 것 \n ③ Claim 발생 많은 지역 내 물류센터 확보 및 해당 지역 Distributor, Realtime을 활용"}, {"no": 129, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-2", "cat": "B", "text": "• 운송비 절감 방안을 본사가 개입하여 찾을 것 \n• Warranty마다 주소와 서비스맨 정보가 있고, Realtime 비용 지불 시에도 나오므로 \n  CRM에 계속 해당 정보를 모아서 통계를 잡아가도록 할 것"}, {"no": 130, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "C-4", "cat": "C", "text": "• 고객 현금 보상의 경우 원칙을 빨리 결정할 것 \n  Case에 따라 어떻게 Discount해서 어떤 식으로 현금 보상할지 Principle 만들 것"}, {"no": 131, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "3. Distributor 반품 및 선처리 \n• Distributor, Plumber별로 반품내역을 확인해야 함\n  잘하는 사업자를 밀어주고, cheating하는 사업자는 우리가 부정행위를 확인할 방법을 찾아야 함   \n• Distributor별로 경향을 잡아가며, 케이스별로 어떤  불량인지 통계를 잡아갈 것"}, {"no": 132, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "• 다음 사항을 Distributor와의 계약서에 명기해야 함\n ① (제이크) Tech와 사전 통화•승인 없이 AS 처리할 수 있는 제품을 반품할 경우 처리하지 않는다. \n ② S/N 정보와 교체 영상을 우리에게 승인받고 교환\n ③ 1년 이상 판매하지 못한 반품은 최소한 50:50 부담할 수 있도록 할 것 (선입선출 강제조항)\n ④ Distributor는 Plumber 교육에 적극 참여한다. \n ⑤ 제품 설치한 고객 장소를 우리에게 알려준다.\n ⑥ 필터 설치를 의무화한다.\n ⑦ 설치, 운반 중 사고는 Distributor 책임으로 한다"}, {"no": 133, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 세대 교체한 S/N 구분 표시할 것\n  S/B 후 3세대로 교체한 제품들 새로운 S/N 발급\n  현장에서 발견된 문제점을 개선해서 PCB Micom\n  모두 업그레이드할 것"}, {"no": 134, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-1", "cat": "A", "text": "• EKFF 항목별로 정리해나갈 것 \n ① Ring 개발 시 발견된 문제점 \n ② 어떻게 문제점을 개선해 나갈까\n ③ 현장을 어떻게 관리했다"}, {"no": 135, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-4", "cat": "E", "text": "5. 26년 CRM-CSR 개발 및 고도화 일정 \n  • CRM 접수된 7천건 중 정보확인이 어려운 3천건은 조각된 정보라도 최대한 정보를 넣어주도록 할 것\n   최소한 Distributor 정보라도 CRM에 입력할 것\n  • 엉뚱한 정보가 나올 수도 있고 우리에게 정보가  없는 것을 알고 Distributor가 이를 악용할 수도 있음\n  • 외부인력을 쓰더라도 최대한 빨리 끝낼 것"}, {"no": 136, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "< VESTA 월보 > \n1. 조직 및 직제표 \n• 월보는 별도로 회장님께 서면 결재 올릴 것"}, {"no": 137, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "< VESTA 월보 > \n• 수표 사용을 최대할 줄일 것\n• 현 신한은행이 아닌 BOA 등 한국에서 계좌이체가 가능한 현지은행을 찾아볼 것\n• 수표발행 후 2주 넘으면 확인 통제하는 시스템을 만들어서 고객이 왜 찾지 않았는지 개별 확인할 것 \n• 해당 Distributor의 반품, AS 내역 모두 확인할 것"}, {"no": 138, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": ". 외상매출금 내역\n  • 거래처별로 확인해서 특별관리 할 것 \n    문제발생 시 보험처리 할 것"}, {"no": 139, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "C-6", "cat": "C", "text": "• 미국 내 보일러 전체 시장은 정보가 거의 노출되지 않아서 우리가 새로 다 찾아야 함 \n  온라인을 통해 기본 자료를 모아줄 것"}, {"no": 140, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "E-1", "cat": "E", "text": "• 내년 초부터는 조이사와 정부장이 한달~한달반 씩 현장에서 교대근무 하도록 할 것"}, {"no": 141, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "C-6", "cat": "C", "text": "• 지금까지 ‘탱크 있는 저탕식 온수기’ 와 ‘탱크 없는 순간식 온수기’ 가 우리의 경쟁상대로 \n  생각했는데 미국의 메인은 공기열 히트펌프지만, ‘탱크 있는 히트펌프 (HeatPmup Water   \n  Heater)가 25만대 아주 초창기로 완전 전통적인 히트펌프 보일러가 주류를 이루고 있다. \n  우리와 알던 시장과 완전히 다르다. 기초정보가 맞는지 시장 정보를 조사할 것"}, {"no": 142, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-1", "cat": "A", "text": "• 국내 원통형은 천진에서 품질관리를 하고 있지만, 현장 불량에 대해 R&D도 잡아줄 것\n  가장 중요한 포인트는 조립 과정에서 나오는 불량으로 개선방향을 계속 확인할 것"}, {"no": 143, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-1", "cat": "A", "text": "• 콘덴싱 응축수 물빠짐을 위한 물받이와 급수라인 사이에 물이 빠질 수 있다. \n  현재 임시조치를 취했으나 패킹을 하나만 할지, 어떻게 할 지 실링 개선 방법 확인할 것"}, {"no": 144, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "천진 품질검사 (공정검사) 중국사람 1명 공장경험이 있는 인력으로 채용할 것"}, {"no": 145, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "포밍 프로세스에서 밀림현상을 어떻게 잡을 것인가 고민할 것"}, {"no": 146, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 천진 1롤 당 H/E가 대략 50개 정도 나온다. 1롤에서 나온 H/E에 일련 바코드 넣을 것\n  불량 발생 시 조치하는 매뉴얼 절차를 수립할 것"}, {"no": 147, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 현장에서 불량 용접과 조립할 때 누수, 누설이 안 생기는 것이 가장 중요한데 \n  현재 일하는 작업자에게 테스트가 맡겨져 있다. \n  일하는 사람 자체 프로세스를 정립하고, 실험실 샘플 테스트도 프로세스를 정립할 것"}, {"no": 148, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 매일 테스트해야 하는 것은 단순히 사용할 수 있는 제품인지 없는 제품인지 확인해서\n  생산된 제품 중 불량 제품은 조립 라인에 들어가기 전에 빨리 회수해야 함"}, {"no": 149, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 천진에서 생산된 H/E 국내 음성공장에서 테스트하는 방법 정립할 것 \n• 현장에서 실질적으로 할 수 있는 테스트 프로세스를 정립해서 공정별로 관리할 것 \n  공정별로 누수 검사 방법을 찾아야하고 매뉴얼을 만들고 또 그대로 검사를 해야 함"}, {"no": 150, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "• 한국 현장에서 발생하는 AS가 미국에서 안 생기도록 미국에서 교육 시키고 \n  제품에 대해서도 검사해야 한다."}, {"no": 151, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-6", "cat": "A", "text": "< 온수기 제품 교체 기준 매뉴얼 > \n• 개선될 경우 모든 이력을 매뉴얼에 다 붙일 것 \n• 매뉴얼에 대해 개선항목을 제시한 테크니션과 Distributor 등 포상할 것"}, {"no": 152, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "< 10월/11월 워런티 2차 보고 > • 워런티 (Replacement) 감소 방안 \n 과잉교체 방지를 위해 Distributor 계약까지 바꾸자는 이야기가 나왔다. \n  우리의 허가를 받지 않고 반품된 것은 인정하지 않고 \n  50:50, 70:30 우리 면책 범위를 설정하고 반품되기 전 우리 쪽에서 합의된 절차대로 한다. \n  합의된 절차에 대해서는 케이스들을 만들어서 설명하도록 할 것\n• 기본적으로 Plumber가 단순히 고칠 수 있고, \n  우리 부품이 가 있는데도 안하는 것은 100% 거부한다"}, {"no": 153, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "• 10~11월 워런티 현황 (제품 교체)\n• 콜센터에 케이스별로 교육시켜서 향후 워런티가 아닌 AS 서비스로 처리할 수 있도록 할 것"}, {"no": 154, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "• 10~11월 워런티 현황 (제품 교체)   ③ 배기덕트 융착 및 강도보강 개선\n  • 향후 숫자가 많아질 가능성이 있다. \n • 문제된 1~1.5세대, S/B 모두 개선사항 반영하여   K-3세대로 바꾸고, 바뀐 부품에 S/N 다 표시할 것"}, {"no": 155, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-2", "cat": "B", "text": "• CRM DATA 지도 표기\n  운송비 절감을 위한 창고운영 후보 6곳 \n• AS 운영 가능한 창고 빨리 찾을 것"}, {"no": 156, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "A-7", "cat": "A", "text": "• 누적 불량률 현황 : 43,575 중 5,215 (12.0%)\n• 세대별 숫자 다시 통계내서 보고할 것 \n  세대별 트렌드, Peak 치 등 시각적으로 보고할 것"}, {"no": 157, "title": "VESTA 자금결산회의 주요 지시사항", "date": "2025.12.16(화)", "month": "2025.12", "code": "B-4", "cat": "B", "text": "• 제품교체 vs 직원AS 효과분석 (200대) \n  교체비용 322백만원 vs AS 비용 201백만원 (1.2억↓)\n• 해당 지역에 Realtime 일 잘하는 plumber와 접촉해서 AS 맡길 것"}, {"no": 158, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "B-1", "cat": "B", "text": "• 워런티 처리 방침\n① 우리 기술팀이 승인한 워런티 건만 처리하고 나머지는 AS 하도록 노력해야 한다. \n   Manual Procedure에 따라 승인받은 건만 처리\n② S/N와 집주소가 확인되는 건만 처리\n③ 운송비 절감을 위해 보관창고를 5~6곳 만들어서\n   5대씩 갖다놓고 거기서 바로 발송되도록 할 것"}, {"no": 159, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "B-2", "cat": "B", "text": "• 운송비 절약을 위해 실질적으로 어떻게 노력했다는 것을 내년 초부터 이 회의에서 보고할 것 \n• 온타리오•달라스•휴스톤 물량 배분과 워런티를 위한 보관장소까지 보내는 물량을 결정하는 프로그램을 \n  이 지사장이 만들고 조 이사가 감독해서 결정할 것"}, {"no": 160, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "B-4", "cat": "B", "text": "8. TX 지역 AS 현황 \n  • CA 지역 Pro를 구하거나, 외주업체를 지정하거나 AS를 따라가는 조직을 만들어서 서울에서 사람을 \n  못 보낼 경우 사람을 채용해서 빨리 Pro를 양성하고 키우는 방법을 배워보도록 할 것"}, {"no": 161, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "B-2", "cat": "B", "text": "① 워런티를 위한 제품 보관창고 결정 \n   소규모 전문창고업자를 구해서 계속 앞으로 편리하게 활용할 수 있는 방법을 찾아갈 것"}, {"no": 162, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "앞으로 수표 발행하거나 T/T 송금하기 전에 Credit과 Debit 정보를 상세히 보내서 사전에   \n   상대방의 확인을 받도록 할 것. 본사에서 검토 후 이메일로 상대방에게 보낸 후 이의가\n   없는 곳에만 보내는 프로세스와 매뉴얼을 만들 것"}, {"no": 163, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "수표 발행 후 2주 내 돈을 찾지 않으면 일단 지급정지 시킬 것 \n   수표가 분실되었거나 전달이 잘 안 되었다든지 배달사고가 있을 수 있음"}, {"no": 164, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "E-2", "cat": "E", "text": "LA지사와 본사 책임자가 Key-In을 눌러주면 돈이 나가도록 하여 미국에서 수표 수취없이 \n   바로 T/T로 송금되는 프로세스를 만들 것"}, {"no": 165, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "E-3", "cat": "E", "text": "재고 감사 외에도 필요한 관리 항목을 사전에 정의하고 관련 자료를 미리 수취하여 \n   준비•확인하는 체제를 구축할 것"}, {"no": 166, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "A-2", "cat": "A", "text": "5) 현장문제 개선대책 \n • 캐스케이드 2대 연결 시 제품1번이 환탕모드일 경우 \n   제품2번의 유량조절밸브를 닫아 제품1번으로 직수유입이 없게끔 조치 \n• 유량조절밸브가 체크밸브의 역할을 하도록 조치\n  S/W 변경이 아닌 프로그램을 단순화하기 위해 기계적으로 안전하게 만드는 방안 검토할 것"}, {"no": 167, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "A-2", "cat": "A", "text": "2. 당사 캐스케이드 3대 이상 연결시 유효성 검증 \n • 캐스케이드 4대 : 40LPM 유량 증가 \n  경동 (+6), VXP (+2, -3), K-Type (+4, -10)\n• 당연히 마이너스가 되어야 하고 마이너스 편차가\n  얼마나 작은가가 문제라 생각했지만 경동의 경우\n  플러스가 나오는 사항에 대해 한번 더 검토할 것"}, {"no": 168, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "A-2", "cat": "A", "text": "2. 당사 캐스케이드 3대 이상 연결시 유효성 검증 \n • 변경 : 설치대수와 관계없이 1대만 가동대기 \n         즉, 1대만 유량조절밸브 오픈 상태 \n         부하율 65% → 다음제품 유량조절밸브 오픈\n• 새로 나가는 K-Type 제품도 마찬가지로 유량조절밸브를 닫는 방법을 검토해 볼 것"}, {"no": 169, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "• Distributor 분석 및 평가 \n  이제 자료가 많이 축적되었으므로 단순 판매 실적이 아니라 Distributor 별로 워런티와 \n  AS 처리 방식에 대한 분석•평가 단계로 진입해야 함"}, {"no": 170, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "• Distributor의 책임 범위와 거래 원칙\n  회사가 기술 지도와 AS 훈련을 통해 Distributor가 제품을 이해하고 직접 AS를 수행할 수 \n  있도록 지원해야 하나, AS 교육을 받지 않고, AS 발생 시 무조건 워런티 반품으로 처리\n  하여 고가의 비용을 발생시키는 비협조적인 Distributor와는 거래 불가"}, {"no": 171, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "문제는 단순히 한두 대의 판매량이 아니라 AS 수행 능력 여부이며, \n  AS가 가능한 Distributor와만 거래하는 것이 향후 판매 전략의 기본 원칙 \n ① Distributor별 워런티 발생 및 AS 대응방식 전수 분석\n ② 무분별한 워런티 청구로 회사에 손해를 끼친 Distributor는 거래대상에서 제외\n ③ 현재 적극적으로 AS를 수행하는 제한된 Distributor 범위 내에서만 판매 진행 \n ④ RING 제품이 AS 발생률이 낮고, 소비자 반응이 긍정적이라는 점이 확인된 경우에만 판매 확대"}, {"no": 172, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "• Distributor 계약서 개정 방향 \n  Distributor 계약서에 다음 권리를 명확히 명시할 필요 있음 \n ① 무분별한 워런티 청구에 대해 회사가 워런티 처리를 거부할 수 있는 권리 \n ② 이와 같은 Distributor에 대해 제품 판매 자체를 거부할 수 있는 권리 \n ③ 계약조항의 근거 \n    지금까지 발생한 Distributor별 워런티 사례를 전수 조사 \n    무분별한 청구로 회사에 손실을 입힌 실제 케이스들을 구체적으로 정리 \n    이를 문언화하여 계약의 합리적 근거로 삼을 것 \n ④ 이와 같은 계약이 되어 있는데도 불구하고 무분별한 워런티가 발생할 경우 그 비용을\n    Distributor가 부담하도록 하는 조항을 변호사와 협의하여 신중하게 포함시키고, \n    Distributor가 해당 계약내용을 명확히 인지한 상태에서 계약하도록 할 것."}, {"no": 173, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "C-4", "cat": "C", "text": "• 온수기 HEX 누수 사례 \n  HEX 누수와 같은 중대한 워런티가 발생되는 제품 판매는 극도로 신중해야 함. \n    중대한 하자가 반복적으로 생기는 제품은 판매대상에서 제외해야 함\n경미한 하자라 하더라도 \n  • Distributor 산하 Plumber들이 현장 AS를 수행할 수 있는 체계 \n  • 품질 안정성 \n  • AS 조직과 프로세스 \n  가 갖춰지지 않으면 판매 불가한 제품의 대표적인 것이 온수기라는 점을 명확히 인식할 것"}, {"no": 174, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "C-4", "cat": "C", "text": "• 판매 가이드라인 정립\n  반드시 AS 체제가 갖춰진 지역에만 판매. 워런티를 남발하는 지역에서는 판매 불가.\n • AS 가능한 지역, AS 가능한 Distributor에만 판매 \n • HEX 누수와 같은 중대 AS가 발생하지 않는 제품만 판매\n • 중대 AS 발생 시 해당 제품 즉시 판매 중단 \n • 대안이 없을 경우 조직 철수 결정 \n • 기존 판매 제품에 대해서는 대성의 신용만 유지하고 신규 판매는 중단"}, {"no": 175, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "새로운 Distributor는 Rep이 소개했다고 무조건 거래하면 안 되며 계약서에 서명한 업체만 \n 거래를 한다. LA 라스베가스 전시회 이전에 계약서 초안 보고할 것."}, {"no": 176, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "우리가 기술을 지도하고 AS 훈련을 계속 시켜서 제품을 쓸 수 있게, AS를 할 수 있게 \n 도와주는 것은 반드시 해야 하지만, 아예 AS 교육도 안 받고, AS 생기면 무조건 워런티로 \n 반품시키고 우리에게 고가의 비용을 발생시키는 것에 대해 관심이 없는 비협조적인 \n Distributor와는 거래를 해서는 안 된다."}, {"no": 177, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "단순히 한두 대 파는 것이 문제가 아니고 AS가 가능한 Distributor와 거래를 해야 한다. \n 그런 Distributor를 찾아서 거래하는 것이 지금부터의 판매전략의 가장 기본이라는 것을 \n 이해하고 지금부터 Distributor들이 어떤 형태로 하고 있는 지 분석을 하면서 워런티를 \n 무분별하게 발생시킨, 우리에게 손해를 끼친 Distributor는 일단 거래에서 아웃시키는 \n 기본 원칙을 갖고 빨리 분석을 해볼 것"}, {"no": 178, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "Distributor 계약서에 무분별한 워런티에 대해서는 우리가 워런티 취급거부를 할 수 있는 \n 권리와 Distributor한테 판매를 거부할 수 있는 권리를 명기하도록 하고 \n 그 조건들을 변호사와 의논하며 그 근거는 현재까지 Distributor에 발생된 워런티 상황을 다 \n 조사해서 무분별하게 우리한테 청구한 회사들의 케이스를 구체적으로 예시하여 \n 말로 표현한 것이 Distributor 게약의 근거가 되고, 우리가 클레임을 거부할 수 있는, \n 지불을 거부할 수 있는 근거가 된다."}, {"no": 179, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "D-1", "cat": "D", "text": "반드시 AS 체제가 갖춰진 지역에만 판다. 워런티를 남발하는 지역에서는 우리가 팔 수 \n없다. 지금은 잘못된 제품을 판 죄로 이것저것 묻지도 못하고 다 덮으면서 참 말 못할 \n우리 회사 창업에 이렇게 창피스러운 일이 없을 정도로 큰 적자를 보고 있다. \n 다시 파는 물건에 대해서는 AS가 되는 지역, AS가 되는 Distributor에만 판다."}, {"no": 180, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 영업, 마케팅, 리콜, R&D)", "date": "2025.12.30(화)", "month": "2025.12", "code": "A-1", "cat": "A", "text": "장사가 안되면 철수한다. HEX 누수 같은 큰 AS가 발생하지 않는 제품을 판다. \n큰 AS가 발생하면 그 제품 판매 자체를 바로 중지한다. 대안이 없으면 조직을 철수하고, \n그 동안 팔린 제품에 대해서 대성의 신용만 지키고 우리는 철수한다는 큰 가이드라인을 \nLA 지사와 고 대표가 행동으로 옮겨주도록 할 것"}, {"no": 181, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "C-5", "cat": "C", "text": "< 영업부문 – 국내> \n1. 신규 수요처 지속 발굴과 패키지 영업 \n 1) 프랜차이즈 : 시간을 갖고 접촉할 것 \n 2) 시설관리전문회사 : 대형보일러+냉난방시설\n 3) 온수기를 사용하는 음식점 등에 서비스로봇+청소기+세제 등 영업방안 검토\n 4) 기계사업부와 공동영업 체계 구축 검토\n 5) 기타 골프장, 요양시설 등 온수기, 전열 교환기, 로봇 (청소, 서빙) 등 패키지 영업"}, {"no": 182, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "1) 원통형 마케팅 포인트 \n  ① 10년 열교환기 무상 보증 \n  ② Cold Sandwich 현상 없음\n  ③ 다수의 수도꼭지 사용시에도 온도차 적음"}, {"no": 183, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "2) 영업과 R&D가 협력하여 우리 제품이 한발\n  앞설 수 있는 차별화 전략을 보고할 것\n  ① 경쟁사 대비 1년 앞서가는 것이 중요\n  ② 우리 제품의 차별화 포인트를 지속 확보"}, {"no": 184, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "2. 원통형 마케팅 방향 (계속)\n  ① 영업용∙상업용 어플리케이션 확대방안 검토 \n      예) 미용실, 대규모 음식점, 골프장, 고급펜션, 체육관 등 \n  ② 품질을 유지하면서 무게를 줄이는 방안\n  ③ A/S 편리하도록 세밀하게 설계한다"}, {"no": 185, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "3. 원통형 영업 전략 \n 1) 특판 영업 강화\n  ① 30대 상위 건설사 진입을 목표\n  ② 영업 담당자들이 방문해서 누구를 만났고 \n      어떤 사유로 어느 담당자 선에서 커트가 되었는지 꼼꼼히 히스토리 관리할 것\n  ③ 비우호적인 건설사는 고봉식 사장, 계열사 임원진들이 직접 현장에 가서 영업할 것\n 2) 재개발/재건축 시장\n  ① 재개발 지역 입주자 대표들이 원통형 \n     콘덴싱을 스펙으로 넣도록 발 빠르게 영업\n 3) 샤워 필터/고급화 \n  ① 샤워헤드+필터 3세트를 고급화 구성해서 원통형을 소비자가 구매시 처음에 제공\n      이후 개별적으로 구매 가능토록 할 것"}, {"no": 186, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "E-2", "cat": "E", "text": "1. 해외영업 판매현황\n   외상거래 없이 100% 현금 받고 내보낼 것"}, {"no": 187, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "E-3", "cat": "E", "text": "3. 법인 가용 재고 : 1,338대 (1.6-193대, 2.0-1,195대)\n   1.6세대 법인 가용재고 193대 빨리 쉽백할 것\n    → 미국 현지에서 재작업 진행"}, {"no": 188, "title": "대성쎌틱 회의 주요 지시사항 (국내영업, 제품개발 및 R&D)", "date": "2025.10.16(목)", "month": "2025.10", "code": "B-4", "cat": "B", "text": "5. VX/VXP 필드테스트 현황 \n   가정용, 영업용 원통형 수요처를 발굴해서 빨리 설치할 수 있도록 할 것"}, {"no": 189, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "1. 온라인 비즈니스 \n   1) 온라인 시장 공략으로 전환 \n    - 현지 Distributor의 쎌틱 제품 취급 비중이 낮음\n    - Distributor 중심 구조 탈피 → 실력 있는 Plumber 직접 네트워크 구축\n   2) Plumber 인력 양성 \n    - 향후 리얼타임 시스템을 활용한 A/S 인력•업체 관리\n    - Plumber 자격증 지원, 협회와의 협력 강화\n   3) 한국식 전속 대리점 제도 도입 \n    - RealTime의 실력있는 기사들을 Pro로 양성한 후 전속 매니저(대리점)로 \n      등록하는 방법 검토"}, {"no": 190, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-5", "cat": "C", "text": "2. 원통형 온수기 주요 타깃 시장\n  1) 미국형 어플리케이션 중심 마케팅 개발 (조성태 이사 담당)\n   - 전문 세탁소 : 호텔, 병원, 소방시설용 산업 세탁 수요 대응\n   - 에어비앤비 : 캐스케이드 방식, Back Rush 감소 강점 강조\n   - 체육관 : 공기난방 및 히트펌프 연계 개발"}, {"no": 191, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "3. 원통형 상품명 검토\n   1) 국내 최고급 라인 “Black” 콘셉트는 미국 시장에서 부정적 의미\n   2) 미국 시장 전용 브랜드명 재검토 필요\n  - Gas Ring Hot Water (Gas ◎ Hot Water)"}, {"no": 192, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "B-3", "cat": "B", "text": "< 리콜 >\n1. 리콜 대응 및 보상판매 마케팅\n  1) 지역별 리콜횟수에 따라 리콜비용 Discount 계약 조항 재검토\n  2) 기존 불량제품 교체 시 신규 원통형 HE로 교체 검토"}, {"no": 193, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "C-6", "cat": "C", "text": "< 생산, R&D > \n1. 미국 상업용 온수기 온도 및 규정 검토\n  1) 미국 상업용 온수기 규정상 최고 온도는 80℃이나,\n     실제 식당 등 현장에서는 93℃까지 사용하는 사례가 있음\n  2) 기술적으로 온도를 높이는 방식 조사할 것\n  3) 축열조 관련 규정 조사 : 물 저장량과 동시에 사용할 수 있는 출력량 비교\n  4) 실제 상업용 현장에서의 사용방식 조사"}, {"no": 194, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-2", "cat": "A", "text": "2. K-3 대비 원통형 온수기 성능 비교 실험\n  1) K-Type 대비 원통형 열교환기 수도꼭지 (tab) 사용 가능 개수 비교 실험\n  2) K-1.0 대비 K-2.0, K-3.0 온수기 내구성 시험"}, {"no": 195, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-1", "cat": "A", "text": "3. 원통형 온수기 메카니컬 구조 재설계\n  1) 기본 설계 원칙은 반드시 유지하며 설계 완료 후 조성태 이사 검증 필수\n  2) 리서큘레이션 누수•누설 방지 구조 설계 강화\n  3) 기존 1960년대형 단순 효율 중심 구조를 탈피"}, {"no": 196, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-1", "cat": "A", "text": "4. K-Type 오발 튜브 문제 분석\n  1) 석회 (스케일) 에 의한 오발 튜브 파손 사례 발생\n  2) 특정 업체만의 문제인지, 자사 제품 영향 여부 확인 \n  3) 명확한 원인 규명 전까지 지속 추적 조사"}, {"no": 197, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "1. 부품•제품 관리체계 고도화\n  1) PCB, HE 등 주요 부품 교체 시 S/N 철저 관리\n  2) S/N별 불량 발생 시 불량률 관리수준에 따른 Warning 시스템 구축\n  3) ERP•PLM•CRM 간 연동체계 구축 필요"}, {"no": 198, "title": "대성쎌틱 회의 주요 지시사항 (영업∙마케팅, 리콜, 생산∙R&D, 제품∙고객관리)", "date": "2025.10.13(월)", "month": "2025.10", "code": "E-1", "cat": "E", "text": "1. EKFF 조직문화 강조 \n  1) 전 임직원 EKFF 문화 내재화 \n     E (Experience) 경험 + K (Knowledge) 지식 + From + F (Failure) 실패 학습\n  2) 반복되는 실수•하자 사례를 체계적으로 기록•공유\n  3) ISO LIST와 함께 EKFF 기록과 Video 매뉴얼 병행 등록\n  4) “후배에게 반드시 전해야 할 노하우 문화” 확립"}, {"no": 199, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "- LOPE 자동화 설비 적용 (코일링, 포밍, 조립, 검사) \n   2026년 상반기 설비 세팅 완료 예정 \n  국내 포밍업체 방문 후 설비업체 최종 결정\n  세아제강 담당자 만나서 조관 설비 파악할 것"}, {"no": 200, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "류이사가 혼자 따라 들어가고 부품 소싱, 품질 지키고, 조립라인 다 책임져야 하는 상황\n대성 단독으로 이끌어가기 힘든 상황이기 때문에 앞으로 협력기차와 같이 갈 것 \n미국은 발멕스, 한국은 현재 기계에서 합격한 제품을 골라서 시장에 판매하면서\n향후 협력기차와 기계 공동투자를 통해 생산되는 제품을 갖고 오는 방안 검토할 것"}, {"no": 201, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "국내 판매용 원통형은 음성이 아닌 천진공장에서 열교환기를 제조할 것\n향후 보일러 조립까지 천진공장에서 할 경우 노조문제에서 벗어날 수 있다. \n음성 공장은 최종 제품 조립만 하며, 향후 보일러 시장이 줄면 음성공장의 라인을 줄여간다."}, {"no": 202, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-5", "cat": "A", "text": "미국은 가스 온수기와 히트펌프 두 개의 결합형이 향후 대세가 될 것\n히트펌프는 전기회사 보조금, 원통형온수기는 가스회사로부터 보조금을 받아 가정에서\n거의 공짜로 설치할 수 있는 정책을 감안하여 많이 보급할 수 있다.\n미국 시장은 2~3만대 판매에서 히트펌프와 같이 갈 경우 50만대까지 갈 수 있음 \n국내 또한 히트펌프 콤비가 대세가 될 수 있음 \n우리도 팀을 보강하여 R&D 인력, 대성물류건설, 보일러팀과 협력하여 \n회사 차원의 가장 중요한 프로젝트로 따라 들어가야 함\n결국 모든 부품은 중국에서 가져와야 하므로 지금부터 소싱업체 조사할 것"}, {"no": 203, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-6", "cat": "A", "text": "천진 공장은 포밍, 코일링 기계만 더 준비하고, 본격 증산을 위한 추가로 1개 라인 설비\n구축은 협력기차와 협의하고, 더 라인을 키울 지는 한국, 미국 시장 움직임과 미중 관세 \n관계를 보고 결정을 한다."}, {"no": 204, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-1", "cat": "A", "text": "5. 모니터링 제품 품질 문제점 개선 \n 1) 오링 씹힘으로 인한 누수 개선\n나중에 금형개발까지 갈 수 있도록 조치할 것"}, {"no": 205, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "A-1", "cat": "A", "text": "1.5, 1.6세대 쉽백 제품 모두 잠열 연결 부분 가스켓 개선된 열교환기 3세대로 교체할 것"}, {"no": 206, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "C-4", "cat": "C", "text": "미국 나비엔이 점유하는 온수기 시장과 신규 원통형 온수기 시장 둘다 점유율을 높인다. \n단순 잔고장을 빨리 손봐서 좋은 Reputation 받을 수 있으면 시장에서 붙어 볼만 하다.\n협력기차에 본격적으로 라인 깔아보고, 해당 라인을 사서 한국으로 갖고 오는 것은 \n미국과 중국과의 관세 관계를 보고 결정한다. \n영업에서 생각을 정리해서 R&D와 미국 시장 전체에 대한 생각을 공유할 것 \n미국 경쟁자들이 어떤 정책에 따라 어떤 가격을 쓰는 지 파악할 것"}, {"no": 207, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "C-2", "cat": "C", "text": "온라인 비즈니스 모델 만들 것 \nR&D는 온라인 모델에 사용할 마케팅 문구와 조성태 이사 어플리케이션 개발 도와줄 것"}, {"no": 208, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "C-3", "cat": "C", "text": "나중에 미∙중이 가까워 지면, 한국에 파는 중국 상품들을 미국에서도 팔아야 한다. \n1차는 원통형, 2차는 히트펌프이며 향후 판매망을 어떻게 만들어 갈 것인가에 대해 \n고 사장, 이해수 이사, 정부장과 같이 협력해 나갈 것"}, {"no": 209, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "C-5", "cat": "C", "text": "미국 판매시장에 대한 경험을 히트펌프 판매사원들에게도 공유해 줄 것 \n현장에서 시험한 결과를 갖고 어플리케이션을 개발하여 실제 시장이 어떻게 움직이는 지 \n이호준 법인장과 계속 체크"}, {"no": 210, "title": "대성쎌틱 회의 주요 지시사항 (원통형 생산∙R&D, 영업∙마케팅", "date": "2025.10.31(금)", "month": "2025.10", "code": "E-1", "cat": "E", "text": "향후 영업사원 4명의 경우 2명은 기존 Rep/Distributor, 1명은 신축 시장 어플리케이션인\n체육관, 교회, 연립주택 등에 집중하며, 1명은 리모델링 분야에 영업하는 방안 검토 \n해당 분야에 경험있는 영업사원들을 채용할 것"}, {"no": 211, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-2", "cat": "C", "text": "Shopify 쇼핑몰 구축은 미리 세팅한 S/W를 그대로 쓸 수 있으므로 거제백화점과 협의할 것"}, {"no": 212, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "B-1", "cat": "B", "text": "4. 반품 및 후속조치\n  제품, SPEC 별로 자세한 ppm 관리해 줄 것 \n  홈쇼핑 사용 후 반품 등 포함하여 Maker별로 구매∙품질 담당자 지정해서 불량통계 관리해 줄 것"}, {"no": 213, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-7", "cat": "A", "text": "1. 집단세대 민원관리\n  나중에 커지는 항목들은 세부적으로 분리해서 하자가 없어질 때까지 특별관리할 것"}, {"no": 214, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "2. 신제품 모니터링 현황 \n   DPC, DOC 제품은 모든 하자를 다 따라갈 것 \n  생산 : 조립불량, 납땜, 사출물 치수 오류는 조립 과정에서 나오는 문제로 \n          생산에서 작업자가 주의를 기울이도록 교육할 것 \n  R&D : 펌프소음진동, 배기온도∙온수 불량, 과열에러 등은 R&D 설계가 모두 특별관리할 것"}, {"no": 215, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "모든 제품이 초기에 불량이 생기는 것은 당연하다. R&D와 AS 조직 간에 협업하는 과정을 \n특별관리로 기록하고 빠른 시간 내 안정이 되도록 노력할 것\n그 협업하는 과정은 AS에서 출발하므로 협업하는 내용을 본사에서 잡아줄 것\n컴퓨터 관리자가 창을 열어 놓으면 각자 기기를 통해 서로 의견을 주고 받을 수 있도록 \n하며 회장님께서 직접 해당 창을 보실 수 있도록 조치할 것"}, {"no": 216, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-5", "cat": "C", "text": "3. 캐스케이드 현장 지원\n   국내에서 많이 설치하면서 발생했던 하자 부분 중 중요한 체크 포인트를 정리하여 \n   생산, R&D, 설치 문제 3가지 모두 미국에서는 잡을 수 있도록 할 것"}, {"no": 217, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-2", "cat": "C", "text": "구글플레이스토어 등록하는 전체 S/W 흐름에 대해 나중에 별도로 자세히 보고할 것"}, {"no": 218, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "D-2", "cat": "D", "text": "Plumber는 적극적으로 AS에 협조하므로 현장과 문제 사진을 찍으면서 앞으로 단순 녹음도\n 시작하도록 조치할 것. AI가 발달하면서 녹음파일을 정리하고 소팅하는 새로운 제품이 나오고 \n 있으니 해당 제품을 찾아볼 것"}, {"no": 219, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "D-2", "cat": "D", "text": "구두로 하던 것을 녹음하고 비디오로 모든 현장을 다 찍을 수 없으니 주요 체크포인트를\n 비디오로 찍는 것까지 시스템을 발전시키도록 할 것"}, {"no": 220, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "10) K-3 현열 열교환기 품질개선 \n  용접기계, 용접로봇, 용접환경을 최적으로 만들어주는 용접기 판매회사 (기계부 협력업체) 활용할 것"}, {"no": 221, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "11) 미국향 S/B 제품 재작업 및 출고 계획 \n     Bosch 일정 협의 대응 440대 \n      Bosch도 제3자가 해준다면 안심을 하니깐 몇개월 단가 얼마 결정해서 별도 단가로 하도록 할 것"}, {"no": 222, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "E-3", "cat": "E", "text": "천진은 별도 재고현황 보고할 것 \n 러시아, 한국은 같이 재고관리 가이드라인 잡을 것"}, {"no": 223, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "4) 완제품 공압검사 검출력 개선 \n   ∙ 미세누설/누수 검출력 확보 \n    현재 캡을 씌워 임시조치 → 설계변경까지 해야 함\n     EKFF 특별관리 하도록 할 것 \n     금형은 모아서 나중에 한꺼번에 투자할 것"}, {"no": 224, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-2", "cat": "A", "text": "∙ 미국향 3세대 현열 열교환기 공압검사 실시\n     오차허용보다 검사방법을 시험을 통해 개선할 것"}, {"no": 225, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-7", "cat": "A", "text": "5) C/S 품질개선활동 \n    구매담당자, 공장책임자가 같이 불량 낮출 때까지 특별관리 할 것"}, {"no": 226, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "∙ 천진 개선업무 현황 \n    포밍부 날카로움 어떻게 해결하는지 조사할 것"}, {"no": 227, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-3", "cat": "A", "text": "히트펌프에서 열이 발생되면 물탱크로 넣는다.\n 열 발생기구들이 가장 Optimization되는 최적의 Controller 필요. 아직 다 갖고 있는 회사는 없다.\n 미국 내 controller 회사와 손잡고 가야 한다."}, {"no": 228, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-6", "cat": "A", "text": "3. DPC/DOC 필드 품질문제 주요 이슈 \n  1) 난방 배기 온도 이상 에러 발생 \n   국내 필드 조치사항은 미국향에도 모두 적용해 주도록 할 것"}, {"no": 229, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-1", "cat": "A", "text": "4) 연소 후 FAN의 Post-Purge 소음 발생 \n     → RPM(6,700) 조정, 제조사 원인 분석 요청\n   미국향 제품 AS 매뉴얼에 초기에 설치할 경우 에어 퍼지 부족 시 가동 후 소음이 날 수 있음을 추가할 것"}, {"no": 230, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-4", "cat": "C", "text": "∙ Case 디자인 변경안 검토  \n  Case에 “Ring” 표현을 좀더 강하게 나타낼 것"}, {"no": 231, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-2", "cat": "A", "text": "∙ 버퍼탱크 (1.2L) 설치 시 1℃ 온도 안정화 개선\n  버퍼+E221탱크의 적정 사이즈가 얼마인지 실험을 통해 알아볼 것 (위치, 크기)"}, {"no": 232, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-2", "cat": "A", "text": "∙ λ값 (공기비) 세팅에 따른 연소 성능 및 소음\n  연구소가 추적해 들어가야 하며 표준치를 세팅하고 지역별 설치매뉴얼에 적용하여 현장에서 적용해야 한다. \n  온수기 결함 혹은 기본 설치환경과 상이할 가능성을 갖고 재현 실험해 볼 것. 특별관리할 것"}, {"no": 233, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "B-4", "cat": "B", "text": "∙ 온수 콜드샌드위치 : 순간 정전에 따른 A7 에러\n  해당 세대 방문하여 온수, 직수배관 전체 점검 후 고쳐줄 것. \n  AS 매뉴얼에 A7이 연속발생할 경우 H/E 교체하지 말고 정전 가능성을 검토하는 내용을 추가\n  설치 어플리케이션에 같이 따라 들어가야 한다."}, {"no": 234, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-2", "cat": "A", "text": "∙ K-Type 품질 이슈 : LPG 열변 시 과다 CO 배출\n  LPG 열변 시 λ값 재현해 볼 것 \n 매뉴얼에 LPG는 λ값을 조절하지 않는 내용을 추가\n CRM 응대 매뉴얼에도 CO가 증가할 경우에 λ값을 올리는 내용을 추가할 것"}, {"no": 235, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-6", "cat": "C", "text": "원통형이 유럽에만 적용되고 미국에 왜 판매되지 않았는지. \n 미국 BradfordWhite, A.O.Smith, Rheem 3사가 왜 쓰지 않았는지 계속 조사할 것"}, {"no": 236, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "C-2", "cat": "C", "text": "∙ 온라인 판매 : Amazon Midea 온수기 2종\n  온라인 체계를 빨리 만들고 온라인을 통한 홍보가 최고다. \n  소비자들은 아직 나비엔이 최고인줄 알고 있으므로 빨리 소비자에게 “Ring”을 알려야 한다. \n  A.O.Smith도 경동도 안 한 “Ring”이 나왔다. \n  온라인 판매 시 지역 설치업자와 직접 연결하고 향후 Pro로 키워 Distributor 역할을 하도록 도와줄 것\n  미국 설계업자가 면적을 적게 차지하는 벽걸이형을 선호하는 트렌드를 경동이 먼저 열었고 \n  우리가 치고 들어가자."}, {"no": 237, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-3", "cat": "A", "text": "스마트 통합배관시스템을 개발하고 미국까지 확대\n 종합건설회사에 ‘환기+캐스케이드+스마트통합배관 \n +컨트롤시스템’ 동시 등록할 수 있도록 준비할 것"}, {"no": 238, "title": "대성쎌틱 회의 주요 지시사항 (구로연구소 생산∙R&D, 영업∙마케팅)", "date": "2025.11.21(금)", "month": "2025.11", "code": "A-3", "cat": "A", "text": "미국 허니웰 외에 룸컨트롤러 Player들이 많아짐\n 룸컨트롤러 회사와 기술 제휴하고, 케스케이드도 미국 회사와 손잡고 접점을 빨리 잡을 수 있도록 할 것\n 여러 회사와 손잡고 H/P + 태양광 시스템까지 개발하고 노하우를 배워서 \n 한국까지 도움을 받을 수 있도록 할 것"}, {"no": 239, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• CRM 구축 현지 교육 \n• 과제별 문제점을 정리하고 실현 스케줄을 만들어 공유할 것"}, {"no": 240, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-2", "cat": "E", "text": "3. 수표점검\n• 송금 매뉴얼 빨리 제도화 할 것  \n① 본사가 거래처와 정산내역을 확인한 다음\n   LA가 수표 발행 _ 거래처 추가 클레임 청구 금지 \n② 현재 신한은행에서 현지 수표를 발행하고 있지만 여러 가지 변수들이 많이 있기 때문에 \n   BOA 등 현지 은행을 결정해서 결제금액만 해당 은행으로 바로 이체하여 \n   수표 발행하는 일이 없도록 할 것"}, {"no": 241, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "B-2", "cat": "B", "text": "1) 워런티 운반비 감축 방안 \n• 운반비 절감현황에 대해 매달 특별관리 보고할 것 \n• Distributor 뿐만 아니라 주변 창고를 빨리 조사해서 결정하고 예외사항은 어떻게 할지 방법을 찾을 것\n• AS Pro를 구하고 Pro의 창고까지 이용하도록 준비\n• Plumber별 워런티, AS 현황 CRM 집계, 평가할 것 \n• 위탁재고는 30%에서 90%까지 올리도록 노력할 것"}, {"no": 242, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-2", "cat": "E", "text": "2) 수표 발행 관련 \n• 송금을 원하지 않는 거래처는 본사에서 직접 확인 \n• T/T를 원칙으로 하고 일상 업무에서 수표사용 금지\n  1회성 수표에 대해서는 앞으로 정확하게 관리할 것 \n• 예외 시 돈이 아닌 AS부품으로 대체하는 방법 검토"}, {"no": 243, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-2", "cat": "E", "text": "< 미국법인 Check 통제 운영(안) > \n• 월보 결재 시 별도로 서면보고 예정 \n• 직접 운영하면서 실제 시험하는 과정에서 개선되는 사항을 보고할 것"}, {"no": 244, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "B-1", "cat": "B", "text": "2. 온수기 워런티 현황 \n• 1세대 10% 넘는 불량률 VRP-199 19%, VRS-199 14% 계속 관심을 갖고 숫자를 추적하도록 할 것"}, {"no": 245, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-3", "cat": "E", "text": "3. 온수기 재고 및 판매현황 \n• 잔여반품재고 No.5~8 1.5/1.6세대 특별관리 할 것"}, {"no": 246, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "2세대 판매 1,221, 불량 14으로 11,000ppm 수준\n  우리 기준은 500ppm이므로 모두 반송 조치할 것"}, {"no": 247, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "• 과거 미국으로 2세대 열교환기를 500~2천개 보내서 \n  TX 교환 후 1.5/1.6세대 나간 숫자를 빨리 파악하고 이것의 AS 발생숫자를 별도로 추적할 것 \n• 1,000ppm 넘으면 비상체계 가동하고, \n  2,000ppm 넘으면 특단의 조치 (현장수리, 한국S/B) 기준점을 빨리 잡아줄 것"}, {"no": 248, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "• 법인 판매계획 수립 시 사업계획과 현재 판매되는 \n  실적에 따른 예상수치 2가지로 구분해서 보고할 것"}, {"no": 249, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "• 추가로 지금 당장 해야 하는 것은 RING 온수기의\n  판매계획과 재고계획을 같이 수립하는 사항임"}, {"no": 250, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• TX 스테이크 식당에서 온수기 2대 캐스케이드를 설치한 원인을 파악할 것"}, {"no": 251, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-2", "cat": "A", "text": "< TX 스테이크 식당 12/22 프로그램 업데이트 완료 >\n• 4대 캐스케이드 연결 시 기존 2대 환탕모드에서 1대만 환탕모드로 하고 남은 3대는 유량조절밸브를\n  닫는 것으로 보고를 받았는데 다시 확인해 볼 것 \n• 한국 내 캐스케이드도 미국과 같이 통일시킬 것인지 아닌지 판단을 내려줄 것 \n• 조이사는 미국 현장 특히 캐스케이드에서 일어나는 어플리케이션 쪽은 더 깊이 관심 가져줄 것"}, {"no": 252, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-1", "cat": "A", "text": "• RING 온수 cold sandwich에 대해 조치한 것, 조치한 결과, 예방하는 방법을 특별관리 보고할 것 \n• 예방 방법은 3가지 ① 현장 사용방법에 대한 사전 지도 ② 설치에 대해서 recirculation이든지 보일러와 \n  관계없는 문제에 대해서 사전 조치 ③ 보일러 자체 PCB 조정 혹은 교체"}, {"no": 253, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "• 조립 과정에서 나오는 불량도 세밀하게 신경 써야 할 사항"}, {"no": 254, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "7. HVAC 전시회 자료 \n• 히트펌프를 강조해서 전시 중임을 알도록 만들 것\n  코너부분 벽면 앞뒤로 HeatPump in Future 등의 전시 문구를 만들어서 붙여줄 것 \n• 고객이 명함과 요구사항을 적어서 남길 수 있고 자료를 받을 수 있는 준비를 어떻게 하는 게 좋을지 \n  방법을 찾아주도록 할 것 \n• 고객이 명함과 요구사항 등 기록을 남기는 방법, 우리가 고객 기록을 받는 방법, 고객과 회의한 내용\n  메모를 남기는 방법을 강구해 볼 것 \n • QR코드를 통해 온라인으로 정보를 교환하는 방법도 매뉴얼을 만들어 줄 것"}, {"no": 255, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "B-2", "cat": "B", "text": "① 운반비를 줄이는 것에 대해 지금부터 매달 바로바로 실적평가를 할 것 \n   중간 운반 창고를 결정하는 것, Pro의 garage까지 이용하는 등 빨리 행동해 줄 것"}, {"no": 256, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "B-2", "cat": "B", "text": "② 누수 이외에는 가능한 현장에서 AS가 되도록 지원하고 불가피한 경우에만 본사 승인을 받고 워런티로 \n   처리하도록 절차를 만들고 시행해서 전체 워런티 중 누수 이외의 워런티 처리 숫자를 줄이도록 할 것"}, {"no": 257, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "Plumber별로 워런티, AS 처리현황에 대해서도 CRM 상에 집계가 되도록 조치할 것"}, {"no": 258, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "• RING에 대해서는 필드 AS가 2,000ppm 이하로 떨어지도록 초기부터 하자를 다 잡을 수 있도록 할 것"}, {"no": 259, "title": "대성쎌틱 회의 주요 지시사항  < VESTA 리콜, 워런티, 마케팅, R&D >", "date": "2026.01.13(화)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "• RING 판매시점, 판매계획, 론칭방법에 대해 정부장이 LA지사, 본사와 의논하고 생산계획까지 준비할 것"}, {"no": 260, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "< 미국 LAS VEGAS AHR 전시회 > \n• 업체별 카달로그 정리, 전시 제품 Sales Point 파악\n• 체크리스트 좀 더 발전시켜서 간단한 체크항목들을 많이 넣어주도록 할 것 \n• 필터 (공조) 회사 카달로그 (QR코드) 모아줄 것\n• 담당자별로 방문업체, 조사항목 다시 숙지시킬 것"}, {"no": 261, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "B-4", "cat": "B", "text": "< VESTA 필드테스트 보고 > \n• 미국 시장은 기준값, 기준온도를 계속 반복하면서 이야기할 것"}, {"no": 262, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• 세대별 판매량과 워런티 발생량이 CRM에서 나타나도록 할 것"}, {"no": 263, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• 현재 출하되는 제품인 2세대, 3세대, S/B해서 미국으로 이동 중인 제품 (열교환기 3세대로 교체)_2,500대\n  RING 제품, 보일러 제품에 대해서는 열교환기 뿐만 아니라 삼방변, 팬, PCB 등 주요 A/S에 대해서 기록\n  통계 작업하고 본사에서 CRM 정리 작업할 것"}, {"no": 264, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• 어플리케이션 쪽에서 나오는 AS 내용은 하나하나 특별관리하고 CRM에 추가할 것"}, {"no": 265, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• 불량률이 1,000ppm 넘으면 바로 경고조치 하고 특별관리대장으로 자동적으로 넘어가도록 CRM을 구성"}, {"no": 266, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS 전시회 준비, VESTA 필드테스트 >", "date": "2026.01.28(수)", "month": "2026.01", "code": "D-1", "cat": "D", "text": "제일 중요한 것이 Distributor를 선정해서 파는 것. Distributor를 집중적으로 교육하는 것 \n  우리에게 협조하여 교육과 AS에 협조하는 Distributor에만 판매한다. \n  교육을 못 따라오고 AS를 못하는 Distributor에게는 판매하지 않는다. \n  설치하는 주택까지 알려주지 않으면 해당 plumber에는 제품을 팔지 않도록 Distributor에게 숙지시킬 것"}, {"no": 267, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-1", "cat": "C", "text": "< 판매전략 요약 > \n• 미국 타겟 시장 정의 \n  ① RING 온수기  \n  ② H/P 보조 온수기 \n  ③ K-Type 보일러 \n  ④ 콤비 보일러\n  ⑤ 캐스케이드"}, {"no": 268, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-1", "cat": "C", "text": "• 대성은 보일러•콤비 기술 기반 회사로서 미국 가정용 보일러 및 콤비 시장을 적극 공략해야 함\n  2029년부터 전기저항식 저장식 온수기 규제 강화 가능성이 높아, 고효율 가스•H/P 연계 전략이 필수적"}, {"no": 269, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-1", "cat": "C", "text": "• 콤비 보일러는 1인 가구•소형 주거(컨테이너•연립 등)에 최적이며, 3.5만kcal 이하 소형 모델이 핵심 타깃"}, {"no": 270, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-1", "cat": "C", "text": "• 캐스케이드는 중형 보일러를 대체할 성장 시장으로 RING의 AS 경쟁력과 낮은 압력손실은 가장 큰 장점"}, {"no": 271, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• 실제 우리가 원하는 시장을 전문으로 하는 Distributor + Rep 발굴이 핵심 전략"}, {"no": 272, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• Pro 기사 (VTP) 육성을 판매 전제조건으로 설정하고, 교육•자격 유지 없이는 제품을 공급하지 않음"}, {"no": 273, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• 워런티•반품은 RING 신제품 교환과 Pro 조건을 연계해 비용 절감과 채널 관계 회복 수단으로 활용"}, {"no": 274, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• 관계가 회복된 Distributor를 중심으로 RING 제품과 AS 서비스 키트를 같이 보내 운반비용을 절감"}, {"no": 275, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• 교육 (방문•온라인) → Pro 육성 → Distributor 실수요 기반의 판매계획 수립"}, {"no": 276, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "B-1", "cat": "B", "text": "2. 워런티현황\n• 캐나다 사스캐처원주 아파트 96대 1세대 제품불량 본사 직원 2명을 파견시켜 해결할 것 \n• 본사는 진행 상황을 VESTA 회의 시 보고할 것"}, {"no": 277, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "B-4", "cat": "B", "text": "온타리오 창고 H/P 시범설치, 운영 경험을 쌓을 것\n  16kW H/P + 200L 저장 + 원통형 5만 kcal Hybrid\n• 시범설치 장소를 추가로 찾아볼 것 (지열H/P 포함)\n• 경험이 많은 H/P + 물용 에어핸들러 시장 먼저 진입\n  LA 사무실을 H/P 시장조사의 교두보로 만든다."}, {"no": 278, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "A-3", "cat": "A", "text": "• 공기열 H/P 연계 시스템 강조 : 시스템 제어 기술\n• 시스템 연동 제어기술이 매우 중요\n  중심 Controller 플랫폼 위에 ‘H/P + 온수기 (보조) + Air Handler + 저장탱크 + 태양광’ 시스템 구성\n• 미국 내 플랫폼을 만들어주는 회사 파악해 볼 것"}, {"no": 279, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "A-3", "cat": "A", "text": "• 호텔 Controller 납품회사 브랜드들 조사 후 H/P 전문 파트너 1~2곳과 사업협력 검토할 것 \n  시스템의 동작 로직과 센서 등 경험을 쌓아갈 것  \n• 중국 내 H/P Controller 전문회사도 찾아 볼 것"}, {"no": 280, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-3", "cat": "C", "text": "< 판매 전략 > 1. 가스온수기 \n • H/P 회사들과 접촉해서 H/P 플랫폼에 넣을 수 있는 온수기 OEM 영업시장을 공략할 것"}, {"no": 281, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-4", "cat": "C", "text": "< 판매 전략 > 2. K-Type 보일러 \n • 대성의 정체성은 보일러 회사다. 한국에서 콤비 보일러를 만들고, 보일러에 부속된 콤비 온수기를 \n   만드는 회사인데 미국에서도 가정용 보일러 시장을 판매 전략으로 적극적으로 공략하자.\n • Granite과 같은 우리 제품 OEM, ODM에 관심있는 회사들을 많이 찾아볼 것"}, {"no": 282, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-4", "cat": "C", "text": "< 판매 전략 > 3. 콤비 보일러 \n • 대성이 한국에서 파는 보일러 본체에 콤비 온수기를 붙인 제품이 미국 시장에 팔리고 있다. \n   조직적으로 콤비가 팔리는 시장이 우리 주력시장으로 생각하고 어떻게 시장을 진입할지 전략을 짤 것"}, {"no": 283, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-5", "cat": "C", "text": "< 판매 전략 > 4. 캐스케이드 \n • Distributor 뒤에 있는 Installation 뒤에 있는 세계가 바로 캐스케이드 세계이다. \n   캐스케이드 시장이 크므로 이것을 전문적으로 키워나가자. \n   우리는 이미 기술을 다 갖고 있고 현장에 필요한 기술은 현장에서 개발하면 된다. \n • 캐스케이드에서 제일 문제되는 것인 AS이다. 우리 RING은 AS가 감소하는 큰 장점을 갖고 있다. \n   대형 보일러 회사의 초대형, 초소형이 아닌 중간 사이즈의 보일러는 앞으로 캐스케이드로 대체될 것"}, {"no": 284, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "B-1", "cat": "B", "text": "< 워런티 및 반품 전략 > \n • S/B 후 K-2, K-3 열교환기로 교체해서 다시 보낸 재고분과 반품 들어오는 1세대 1.5세대 기존 물량은 \n   전량 향후 발생하는 워런티 교환용으로 쓴다. \n • 워런티가 아닌 반품은 현재 현금정산 혹은 K-3세대로 열교환기를 교체해 제품을 보내주는데\n   앞으로 반품 대신 RING 신제품과 1:1 교환하는 방안을 적극적으로 검토할 것\n • 단, 교환조건은 우리 Pro 기사를 구하고 교육받는 Distributor에 한함 \n   또한, 설치장소에 대한 정보를 등록하는 조건으로 할 것"}, {"no": 285, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "B-2", "cat": "B", "text": "워런티가 아닌데 워런티로 들어오는 물량은 20% 정도 되는데 해당 20%를 줄여야 한다. \n   매달 나가는 워런티 수량, 운반비 등 기존 워런티 비용 수치에서 향후 20%를 AS로 대체할 경우 \n   또한 Distributor 중심으로 운반이 이루어질 경우 운반비가 얼마나 줄어드는 지 통계를 잡아줄 것"}, {"no": 286, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-2", "cat": "D", "text": "< 판매조건 : Pro 육성 정책 >\n • 우리 Pro 서비스맨 (VTP : VESTA Pro Technician), Pro AS맨을 키우지 않으면 거래하지 않는다.\n   우리 교육을 적극적으로 받아야 하며 Pro 기사를 만들지 않는 Distributor와는 거래하지 않는다.\n • RING 제품의 경우 처음부터 Pro가 없을 경우 팔지 않는다.\n   콤비까지 들어갈 경우, H/P 보조로 들어가더라도 Pro가 붙지 않을 경우 H/P 업체에도 팔지 않는다. \n • 우리에게 6개월에 한번씩 교육을 받아서 자격을 유지한다. 바뀌면 새로 교육받는다. \n   그렇지 않을 경우 공급하지 않는다. \n • 리스트를 관리하며 실질적으로 평가하고 움직이는 조직이 갖춰질 때까지 팔지 않는다. \n • 보일러의 경우는 24시간 AS가 되어야 하기 때문에 좀 다르며 그래서 20곳 모두 조사해야 하며  \n   콤비가 팔린 곳도 똑같이 조사해야 한다. \n • 우리 서비스, 우리 제품을 적극적인 파트너가 되어서 우리가 정한 Pro 기사가 있는 곳만 거래한다. \n   이런 조건도 받아들여가면서 협력할 수 있는 회사를 찾아볼 것"}, {"no": 287, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "E-1", "cat": "E", "text": "< 영업사원 채용전략 >  \n • Distributor 신규 개척 및 판매 목표를 달성할 때마다 기본금+인센티브 상향, 달성 못하면 퇴출 \n • 세일즈맨을 고를 때부터 우리가 목적으로 하는 시장에 맞는 사람을 채용할 것 \n • 새로운 급여체계도 본사와 LA 사무실과 협의해서 만들어 나갈 것 \n • 얼마만큼의 세일즈맨을 키울지는 60% Distributor 관계회복 상황을 보고 결정하자."}, {"no": 288, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "E-1", "cat": "E", "text": "< 교육 준비 > \n • Pro 교육 준비 빨리 진행할 것 \n • 조이사와 류이사 R&D에서 준비하고 기술 Tech 팀과 영업팀에서도 어떻게 진행할지 검토할 것 \n • 교육 매뉴얼을 준비하고 교육프로그램은 시행해보면서 계속 고쳐 나갈 것 \n • Tech 교육을 우리 현재 팀이 3개월 동안 몇 군데 할 수 있는 지 파악해 볼 것"}, {"no": 289, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-2", "cat": "D", "text": "• 온라인 교육을 시행하면 업무량이 많아 지면서 적정 테크 기술 인력 정원이 나오게 된다. \n   Tech 교육 시켜서 Pro가 몇 명 만들어지냐가 우리 판매의 한계다. \n   교육 시키고, Pro 만들어진 것 확인하고 그 다음 세일즈맨이 이번 달에 몇 개 팔겠다. \n   그 사람들이 제시하는 숫자를 모으는 것이 우리 판매계획이다. \n   Richard 책상 위에서 작성한 판매계획을 앞으로 본사에 보고하지 말 것"}, {"no": 290, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-1", "cat": "D", "text": "• 먼저 Distributor와의 관계를 살려서 Distributor가 요구하는 수량을 받아라. \n   Distirbutor들에게 연락해서 3개를 무료로 받겠다. 10개를 받겠다. 반품으로 받겠다. \n   그런 정보들을 모아서 다시 활성화된 Distributor가 요구한 판매계획만 보고할 것 \n   이 판매계획을 3개월 치를 만드는 데 먼저 주력할 것"}, {"no": 291, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "B-2", "cat": "B", "text": "< 서비스 키트 > \n • 운반비를 줄일 수 있도록 서비스 키트를 빨리 구성해서 준비시키고\n   서비스 키트가 미리 Distributor에 나가 있도록 할 것 \n   그 Distributor가 앞으로 운반비를 절감할 수 있는 방법이다. \n   이런 전략적인 판단을 위해서 Distributor와의 관계를 빨리 회복해야 한다. \n • 현재 15만ppm에 달하는 불량 워런티 비용을 최대한으로 줄인다. \n   또 AS를 하면서 Pro를 키울 수 있다. Pro에게 수입을 주면서 Plumber를 키워 나간다. \n   RING 제품을 보낼 때 워런티 재고품, 서비스 키트를 같이 보낼 경우 운반비가 1/5로 줄어들 수 있다."}, {"no": 292, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-2", "cat": "C", "text": "< 온라인 비즈니스 > \n • Shopify를 빨리 LA사무실에 설치하자. \n • 온타리오 지역을 대상으로 온라인 설치 영업과 온라인 광고 준비할 것 (지역 키워드)\n • 좋은 광고 문안을 만들고, 전문 Scriptwriter에 맡겨서 교정시킬 것_주로 미국 은퇴한 교수들\n • AI로 광고 만들어서 내보고 개선해 나갈 것 \n • 트위터, 메타, 한국의 카카오와 같은 어플을 이용하는 지역 광고대행사도 빨리 찾아볼 것 \n • 해당 광고 자료들을 모아서 Distributor에 보내줄 것"}, {"no": 293, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "D-2", "cat": "D", "text": "• 전문가 교육 프로그램을 초기부터 만들어 가야 하며, 그것이 되지 않으면 미국 시장은 못한다. \n  국내 교육도 구두로 진행 중이지만 매뉴얼화 작업 할 것 \n• 설치업자들의 경험담을 현상모집을 하자. \n• 캘리포니아나 오렌티카운티 등 지역을 선정해서 검토할 것"}, {"no": 294, "title": "대성쎌틱 VESTA 회의 주요 지시사항 < LAS VEGAS 전시회 >", "date": "2026.02.09(월)", "month": "2026.02", "code": "C-3", "cat": "C", "text": "• 하지만 배터리, 태양광 업계와 마찬가지로 H/P도 중국 협력업체가 없으면 못 한다. \n  중국과 협조하는 것을 적극적으로 밀고 나갈 것"}, {"no": 295, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "• 불량률의 정의 \n  공장 : 입고, 공정, 최종 제품 불량률 관리\n  필드 : CRM에서 불량률 관리\n  본사는 이 둘을 합친 최종 불량률을 관리하고\n  필드 follow up 결과와 불량률 변화도 관리할 것"}, {"no": 296, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• CRM은 Distributor, Plumber 정보까지 파악 가능 \n  plumber 설치 후의 내용은 20% 수준만 파악\n  먼저 plumber의 CRM 등록율을 높여줄 것 \n• 기존 Distributor, plumber 위치와 관계없는 엉뚱한 \n  지역에서 물건이 나오고 있어서 원인 파악 필요 \n  그런 일이 생기지 않도록 사전 방지할 것\n  본사에서 특별관리 해 나갈 것"}, {"no": 297, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "B-2", "cat": "B", "text": "• 지역별 워런티 추이에 따른 창고 위치 선정 계속"}, {"no": 298, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "• 워런티별로 창고발송-설치확인-해피콜 절차를 모두 확인한 후에 \n  워런티 비용을 집행할 수 있도록 CRM을 시스템화 할 것"}, {"no": 299, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "B-1", "cat": "B", "text": "• 워런티 처리 흐름 \n  ① 워런티에 대한 판단은 제일 먼저 콜센터의 기술자가 해야 함\n  콜센터 접수 → 접수 No → 이호준 지사장에 보고 → 워런티 No 생성 → 이해수 이사 승인 \n  → 창고 발송 → 설치 Response 확인 → 해피콜\n  ② 해피콜까지 사실 관계가 확인되면 하나의 Warranty 문서가 완료됨 \n  ③ 위의 워런티 절차별로 모인 자료들이 우리에게 청구할 수 있는 기반 자료가 됨"}, {"no": 300, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "B-1", "cat": "B", "text": "• 워런티 청구항목 (운반비) 철저하게 검토할 것 _ 문제점\n  ① 제품을 창고에서 어느 지역으로 보내라고 지시하는 order 절차가 CRM에 안 나타남 \n  현재 단순히 청구서만 받아 도장을 찍고 결재해서 매주 청구비용을 결제하는 상황인데 \n  ② 거리에 따라 합의된 운반비 대로 청구가 되었는 지, 청구서와 우리 내부자료와 비교하는 절차가 없음"}, {"no": 301, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "2. CRM 시스템 개선 및 오류 점검\n• A/S kit box는 선제적으로 Distributor에 미리 발송\n  A/S도 신속하게 진행하고 배송 비용도 절감 가능\n  kit가 미리 나가면 CRM에 발송지 등 정보 등록 \n  대리점별 Kit 재고현황도 파악할 수 있도록 할 것\n• Distributor에도 재고 kit를 많이 쓰도록 유도할 것"}, {"no": 302, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "2. CRM 시스템 개선 및 오류 점검\n• 중간 창고가 만들어지면 그것을 운영할 수 있는\n  기능을 시스템에 추가할 것"}, {"no": 303, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "E-4", "cat": "E", "text": "2. CRM 시스템 개선 및 오류 점검\n• 총 워런티 숫자 중 워런티 처리량, A/S 처리량을 \n  Distributor, Plumber 별로 사후에 집계하는 작업\n  본사도 바로 따라가면서 특별관리할 것"}, {"no": 304, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "D-1", "cat": "D", "text": "• 워런티 처리 과정에서 Distributor 평가를 위한 자료를 다시 뽑아야 한다. \n  워런티만 밀어 붙이는 Distributor가 있는 반면 Plumber를 이용해서 AS 노력을 하고 교육에 협조해 준 \n  Distributor는 CRM에서 별도로 표시가 되어야 하고 일 잘하는 Plumber도 별도로 자료를 뽑아야 한다."}, {"no": 305, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "D-2", "cat": "D", "text": "• 본사는 VESTA 직원 말만 따라가면 안 되고 CRM 데이터를 모아서 데이터가 이야기하도록 만들 것 \n  워런티 비용을 줄이는 과정에서 좋은 Distributor와 좋은 Plumber에 관한 데이터를 모으고 \n  향후 RING 온수기가 시장에서 파괴력이 있을 경우, 그 좋은 반응을 이용해서 \n  Distributor가 Plumber 교육을 시키도록 푸쉬할 수 있다."}, {"no": 306, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "RING이라는 좋은 제품이 시장에서 인정을 받을 경우 그 다음은 \n  그에 맞춰서 일할 수 있고 교육을 시키고 도와주며 따라오는 Distributor와 Pro만 같이 일을 해야 할 것 \n  우리에게 부당한 대접을 계속 하는 Distributor와는 일을 하지 않겠다."}, {"no": 307, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "D-1", "cat": "D", "text": "3. 콜센터 통합 시스템 구축 일정\n• 창고에서 워런티 물건 출고하는 기능 포함_재강조\n  AS보다 워런티가 비용이 더 크므로 중요한 사항\n• labor cost보다 창고 운반비 청구 비용이 더 크므로 정보들이 모두 일목요연하게 나타나게 할 것\n• 창고별로 order가 내려간 후 발생한 총 비용이 얼마이며 설치 후 마지막 해피콜까지 종료되는\n  전 과정들이 CRM에 나타나도록 할 것"}, {"no": 308, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "2. 생산부문 10) 레이져 1호기 가이드빔 작동 이상 \n• Major 용접기 소싱. 메이커 좀 더 조사할 것"}, {"no": 309, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-2", "cat": "A", "text": "2. 생산부문 12) 생산 완제품 테스터기_펌프 온수 시험기\n• 내구성 시험 관련 매뉴얼 재정립 할 것"}, {"no": 310, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "5. 품질부문_DOC (원통형)  3) 공정 불량 관리 \n• H/W 불량과 S/W 불량을 구분해서 ppm 관리"}, {"no": 311, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "5. 품질부문_DOC (원통형)  4) 협력사 Audit : 25년 22건, 1월 협력기차 수행\n• 중국 협력사 10곳 모두 Audit 진행할 것 \n  우리 직원이 입회하여 Audit, 업무지원 하고 중요한 공정은 실시간 MVIT 관리하도록 지시 \n  입고 불량률 체크"}, {"no": 312, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-2", "cat": "A", "text": "5. 품질부문_DOC (원통형) 5) DOC 연소실 부품 업무 지원 _ 천진 공장 \n• 가혹 테스트 별도로 하되, 생산라인은 너무 무리한 조건으로 검증하지 말고 대체 조건도 찾아볼 것"}, {"no": 313, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "1. 집단세대 민원관리\n• 발생세대수는 건설사가 이야기하는 것이고 우리는 부품별, 기능별로 세부 분석해야 함"}, {"no": 314, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "2. 신제품 보일러 모니터링 \n• 무상 A/S, 유상 A/S, 콜센터에서 들어오는 것 3가지로 나눠서 ppm 관리할 것 \n• 콜센터에서 나간 AS 결과까지 특별관리 할 것 \n  유상만 신경을 쓰는데 무상 A/S도 ppm 관리 필요 \n• 새 제품이 나갔을 때 초창기 ppm 관리, 무상기간,\n  유상기간을 거쳐 전체 기간 ppm 관리해야 함"}, {"no": 315, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-6", "cat": "A", "text": "1. 천진법인 DOC 연소실 생산 현황 \n• 라인 2개 운영하면서 서로 충돌이 안 되는지 스페이스를 점검할 것"}, {"no": 316, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "3. 원가절감 활동_1월 출장보고\n• 인덕션 회사를 찾아서 후드와 조합해서 건설회사에 납품하는 방안 검토할 것"}, {"no": 317, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-6", "cat": "A", "text": "4. 26년 원가절감 진행 사항\n• 신뢰성 시험까지 신중하게 처리할 수 있도록 할 것\n  새로운 부품 도입될 때 현장 불량률이 어떻게 변하는지 분리해서 관리할 것 \n  원가절감에 묻혀서 현장 AS 불량률 놓칠 수 있음"}, {"no": 318, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-6", "cat": "A", "text": "4. 미국 온수기 개발 (K-Type 3.1세대)\n• 세대별 명칭 3.1 → 3.b, 3.c (자음) 순으로 변경"}, {"no": 319, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-3", "cat": "A", "text": "5. 국내 IOT 각방 시스템 개발 \n• 중국에서 RC 소싱할 수 있도록 할 것"}, {"no": 320, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "C-5", "cat": "C", "text": "10.기타 APP 개발 \n• 새로운 통합언어 Flutter가 출시되었고, 결국 통합될 가능성 있음\n  어느 정도 진행되는 지 계속 모니터링 할 것"}, {"no": 321, "title": "대성쎌틱 에너지기기회의 주요 지시사항 < 1월 업무보고 - VESTA CRM, 생산, 영업, R&D >", "date": "2026.01.23(금)", "month": "2026.01", "code": "A-7", "cat": "A", "text": "11. EKFF 관리방안 보고 \n• EKFF 관리시스템은 품목별로 따라갈 것. 종합표는 의미가 없음 \n• RING으로 발생한 여러가지 시행착오를 정리할 것 \n• 미해결 사안은 집중적으로 계속 관리할 것 \n• 필드 정보에 대해 본사, 공장과 R&D 간 실시간 공유 할 것 \n• EKFF에 대해서는 빨리 전파시키도록 하고 완결될 때까지 OPEN 할 것 \n• 제일 관심을 갖고 있는 것이 Cold Sandwich이며 여러 가지 복잡적인 문제 때문에 발생하는 사안으로 \n  집중관리 해줄 것\n• RING에서 여러 가지 문제점이 있지만 품목별 1,000ppm 이하 내려갈 때까지 특별관리 할 것 \n• 일어났을 때 놓치지 말고 계속 공유하는 것, 끝날 때 까지 실시간으로 서로 협조해 줄 것"}, {"no": 322, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• 저인망 영업 \n 5. 기숙사 / 사택시설 / 군부대 영업 \n• 군부대 영업에 주력해 줄 것"}, {"no": 323, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "캐스케이드로 들어올 경우에는 각 가정마다 열교환을 해줘야 한다 → Heating Box (통합배관) 필요\n 열배관, 지역난방회사에 체계적으로 통합배관을 영업할 수 있도록 체제를 강화할 것 \n 먼저 오산 지역부터 알아보고 어느 업체가 얼마 가격에 들어왔는 지, 업체별로 언제 교체할 계획인지 등 \n 그 부분을 제대로 영업 들어갈 수 있도록 전략을 수립할 것"}, {"no": 324, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-3", "cat": "C", "text": "• 히트펌프와 ‘캐스케이드+태양광’ 협력체제를 만들 것 \n  H/P와 Heating Box를 같이 영업하면서 H/P로 바로 넘어가려는 회사는 히트펌프에 연결시켜 줄 것"}, {"no": 325, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• LPG와 군이 특판시장인데, 골프장과 리조트의 경우\n  특판도 치고 들어가고 지역별로 같이 치고 들어가서 특별관리 해주도록 할 것"}, {"no": 326, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "관공서 보수공사는 계속 추적하면서 히트펌프와 영업 정보를 교환할 것"}, {"no": 327, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "통합배관 6개 현장 견적, 아직 수주확보 없음\n• 가격, 영업 실패 원인을 파악해서 차별화해 나갈 것 \n  실패를 성공으로 바꾸는 과정에서 우리가 성장한다."}, {"no": 328, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "• 본사는 계열사들의 재개발 영업현장의 모든 정보를 모아서 하나의 테이블로 만들고 통합 관리할 것\n  담당 계열사가 영업정보를 기록하면 주기적으로 재개발 현장별 영업현황을 타 계열사와 공유할 것"}, {"no": 329, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-4", "cat": "C", "text": "• H/P+보일러+F/C+통합배관+환기(+G/M, EV충전소) 등 패키지로 영업하면서 타계열사 상품도 같이 소개 \n  다수의 제품을 한 번에 패키지로 영업하면 현장도 좋아할 것"}, {"no": 330, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-5", "cat": "C", "text": "TKG우동 : 오산세교2-2 캐스케이드 2대 수주\n• 업체의 캐스케이드 용도가 어디인지 알아볼 것"}, {"no": 331, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• SH공사 3권역 보일러 1,406 설치, 매출 15.6억원\n• 지역난방공사 건은 신축 개체공사까지 따라갈 것 \n  지역별로 영업소와 바로 협력을 해야 한다."}, {"no": 332, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-5", "cat": "C", "text": "소비자에게 온수를 빨리 받을 수 있고 편리한 캐스케이드 리서큘레이션에 대한 제안을 해보고\n  도면을 받아 배관업체에 맡겨 리서큘레이션을 만들고 그대로 가동이 되는지 안 되는지 확인하며\n  사후 관리하는 서비스가 정착되면 캐스케이드가 더 많이 팔리면서 대성의 평판도 같이 좋아질 것\n  리서큘레이션이 필요한 곳은 도입할 수 있도록 준비하고 모니터링 하면서 개선해 나가도록 영업.\n• 현장 설치부터 개발부와 같이 협의해 나가고, 개발부의 의견이 효과가 있는 지 없는 지, 다른 문제가 \n  있으면 또 바로 개발부가 가서 일하면서 같이 R&D를 계속 개선시켜 나간다. \n• 요즘 같은 겨울에는 소비자가 빠른 온수를 원할 수 \n  있으므로 영업 쪽에서 어플리케이션을 계속 발전시킬 수 있도록 소비자에 노크할 것"}, {"no": 333, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• 전기온수기 판매루트를 더 개발할 것 (화장실•주방시설 전문 공사업자, 미용실, 병원, 프랜차이즈 식당)\n  판매 대리점만 해서는 안 되며 전국적으로 지역별로 본격적으로 영업할 것 \n• 전기온수기는 적은 이익으로 많이 팔아야 하는 제품으로 우리 또한 가스보일러의 부수적인 제품으로만 \n  생각하고 있지만 가스보일러와 똑같은 방법으로 깊게 들어가 영업체계가 갖춰지도록 해야 함.\n• 전기온수기 영업 시스템을 가스보일러 시스템에 그대로 적용한다. 전국적으로 지역별로 네트워크 영업\n  하면서 아파트, 연립주택 판매망에도 본격적으로 만들어 갈 것. 온수기 AS는 훨씬 쉬울 것."}, {"no": 334, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• 프랜차이즈 영업 : 미용실, 중화음식업협회\n• 프랜차이즈의 경우 서비스로봇 뿐만 아니라 온수기,   환기, 리필캔, C&S세제도 같이 판매가 가능하다.\n  각 사업장 영업할 때 타사업장 제품도 같이 들고 갈 것\n  각 사업장에서 회사별로 디테일 포함해서 관리하며 통합관리는 본사 혹은 책임 사업부가 맡는 시스템을\n  검토해 볼 것 _ 재개발 사업장 포함"}, {"no": 335, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "• 상품판매점 개설 : 누계 32개소 \n• 지역별로 자세히 쪼개주고 어느 상품을 어느 시장에 주로 파는 지 추가로 표시해 줄 것"}, {"no": 336, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "공장의 난방 체계 공사할 일 있으면 연락 주세요. 광고를 보고 주문이 들어오면  \n  우리 쪽에서 기본 엔지니어링을 한 후 지역 내 잘 아는 설비업체와 연결시켜 주면 된다.\n  엔지니어링 결과는 자료를 받아 데이터베이스에 축적해 나가는 플랫폼을 구축한다 _ 엔지니어링 서비스"}, {"no": 337, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-2", "cat": "C", "text": "< 온라인 판매 > : 네이버 78%, 기타 22% \n• Shopify에서 대성쎌틱 쇼핑몰 빨리 만들 것. \n  히트펌프도 간단하게 쓰고 대성계전도 쓰면서 본사에서도 이것들을 합쳐서 만들 수 있을 것.\n  엔지니어링과 온라인 쇼핑몰이 합쳐 AI 쇼핑몰이 새로 생기면 상당히 강력한 B2B 쇼핑몰이 될 수 있다."}, {"no": 338, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-6", "cat": "C", "text": "상품개발된 정보를 다 받아서 우리가 상품기획하는 고급 시장, \n  중급 시장, 저급 시장별로, 품질에서 어디까지 보장하는 등의 상품기획을 좀 할 수 있도록 할 것\n• 상품기획에 대한 정확한 개념이 있어야 해외에 나갈 수 있다. \n  탄소매트는 해외시장에 나갈 가능성이 있어 상품기획까지 개념을 발전시켜 주도록 할 것"}, {"no": 339, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-2", "cat": "C", "text": "< 마케팅, 디자인 > 2. 콘텐츠 운영 현황 \n• 인스타, 유튜브 등 거제도 지역만 노출되도록 설정 \n 이동열 전무와 황 지점장이 리필캔을 앞으로 어떻게 광고할지 협의하고 \n 광고문안, AI로 쉽게 만들어서 노출시킬 것"}, {"no": 340, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "B-1", "cat": "B", "text": "< 미국 법인 > \n① VESTA 워런티 수량을 줄일 것 \n   청구되더라도 누수 외에 간단한 문제는 AS로 조치하여 누수 이외의 워런티가 발생하지 않도록 할 것 \n② 상품 교환할 때 운반비를 줄일 것 \n   plumber 이름별로 워런티, AS 내역, 운반비 기록이 집계가 되도록 CRM을 만들 것 \n   워런티, AS를 많이 취급한 plumber는 우리와 가까운 사람이고 그 중에 일을 잘하는 사람을 \n   나중에 pro로 키울 수 있도록 CRM에서 아예 기본적으로 자료가 만들어지도록 만들어 줄 것"}, {"no": 341, "title": "대성쎌틱 회의 주요 지시사항  < 1월 에너지기기회의 보고 >", "date": "2026.01.15(목)", "month": "2026.01", "code": "C-5", "cat": "C", "text": "< 국내 영업 > \n• 탄소매트 등 여러 상품에 대해서_우리가 후발주자이지만 상품기획을 잘 해나가야 한다. \n• 전기온수기가 가스보일러보다 더 시장이 커질 가능성이 있다. \n  소비자에 맞게 설치해야 하고 관리해야 한다. 설치장소 사진, 배관 등 자료를 모아나가야 한다. \n  설치 지원 어플리케이션에 대해 R&D와 협업하면서, 설치는 현장에서 영업이 깊이 개입하고 \n  설치된 사진을 보면서 잘 설치되었는 지 여부는 영업에서 먼저 판단해주도록 할 것  \n• 관련 자료는 R&D에서 모두 분석하고 어플리케이션쪽을 지원해주도록 할 것"}, {"no": 342, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-6", "cat": "C", "text": "•건설업 동향 \n  신성델타테크 ‘린나이코리아’인수설 \n•서면으로 별도 보고 후 내용 공유할 것"}, {"no": 343, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-6", "cat": "C", "text": "•저인망영업 \n  주택관리업체 : 핸디즈 생활숙박시설 600호실\n•1인 가구 증가로 생활형숙박•오피스텔 등 전문화된 건설•유지관리 회사에 대한 영업을 강화할 것"}, {"no": 344, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-5", "cat": "C", "text": "•저인망영업 \n  신축현장 : 봉천동 호텔 캐스케이드 59대 수주 \n•캐스케이드 각 방까지의 온수 설계도 받을 것"}, {"no": 345, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-2", "cat": "C", "text": "디지털 마케팅 고도화 및 온라인 영업모델 확산 \n•온라인 쇼핑을 위해 Shopify로 쇼핑몰을 만들었음\n  미국 Amazon, Google 입점하는 방법을 조사해서 도와주도록 할 것. 단, 지역은 제한해서 먼저 시작"}, {"no": 346, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-1", "cat": "C", "text": "•앞으로 미국 시장은 타겟 시장을 잡아서 들어가야 한다. \n  첫 번째로 H/P의 보조 온수기로 들어가는 시장이 있다.\n  따라서 조이사는 앞으로 기술을 가진 마케팅 개발팀으로 키우는 것을 염두에 둘 것 \n•두 번째로 기존 보일러의 대체 시장이 바로 캐스케이드가 들어가는 시장이다.\n•앞으로 미국 시장은 RING 온수기 10만 대, H/P 보조 온수기 30만 대, 캐스케이드 10만 대로\n  50만 대 시장을 목표로 한다"}, {"no": 347, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-6", "cat": "C", "text": "< 특판 / 전기온수기 > \n•높낮이 조절 세면대 (업체명 : 세비아) \n  미국 호텔에 판매하면 좋을 것. 조사 보고할 것"}, {"no": 348, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-6", "cat": "C", "text": "목욕탕을 따라 복합 환풍기, 세면대 조절기 등 \n  온수기와 보일러를 파는 영업조직의 플랫폼 위에 \n  올릴 수 있는 제품들까지 관심을 가져야 한다."}, {"no": 349, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-6", "cat": "C", "text": "•탄소매트도 고급제품을 도입할 시기가 되었다. \n  원통형을 도입해서 성공한 것과 마찬가지로 똑같이 \n  플랫폼을 만든 다음 바로 고급화로 들어가는 전략"}, {"no": 350, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-5", "cat": "A", "text": "•온돌, 열교환, 에어핸들러, 라지에이터 등 노하우를 넓혀야 한국에 있는 H/P 메이커들과 협조가 된다. \n  우리는 H/P를 파는 회사이기 때문에 같이 협조할 경우 금방 개발에 대한 노하우가 들어올 것이다. \n  대성 H/P도 공급하고 다른 H/P 메이커들도 같이 공급해야 한다.  \n  지금부터 노하우를 우리 내부에 축적해야 한다."}, {"no": 351, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-5", "cat": "A", "text": "•부품 공급을 중국에서 조달하는데 전시회에 나가면 상품처럼 부품 조달 업체들이 많이 보일 것 \n  메이커들 주소를 모아서 알아보면서 H/P를 어떻게 온수와 연결하고, 에어핸들러에 연결할 것인지를\n  지금부터 우리가 같이 연구해야 한다. 한국에서 연구한 결과, 시험할 결과를 미국에 전해주어야 한다."}, {"no": 352, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-5", "cat": "A", "text": "•우리 가스보일러 원통형이 H/P 보조 수단으로 쓰일 것은 알지만 아직 Spec을 어떻게 맞출지 모른다. \n  그래서 조이사가 현장에 들어가면서 H/P 업자들을 소개받아서 현장을 가봐야 한다. \n  현장 정보를 본사에 토스해줘야 한다. \n  그러기 위해서 LA 사무실에 먼저 H/P를 시범 설치한다."}, {"no": 353, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-5", "cat": "A", "text": "거기에 대한 개발은 3팀이 같이 움직여야 한다. (히트펌프 보조 온수기)\n  ① 영업개발•상품팀 : 연립주택에 소개할 수 있는 정보를 지금부터 만들기 시작해야 한다 - 이성기 상무\n  ② 쎌틱 연구실 \n  ③ 히트펌프 연구실 : 물대물은 세계에서 가장 경험이 많지만, 공기대물은 아직 경험이 적다."}, {"no": 354, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-5", "cat": "A", "text": "특히 중국 부품 소싱은 히트펌프도 뛰지만 쎌틱 부품 공급업체들로부터도 소개받아야 한다. \n  전시장에서 여러 업체들을 만나면서, 주변에서 여러 사람들 도움을 받으면서 \n  우리나라에 맞는 Spec과 가격에 맞는 부품을 찾아야 한다.\n  쎌틱이 그동안 상품 소싱을 중국 중심으로 했다는 것이 이제 지금 힘을 발휘할 때가 되었다."}, {"no": 355, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-2", "cat": "C", "text": "3. 쇼피파이 구축 현황 \n•아마존과 구글도 같이 검토할 것 \n 지역은 조심스럽게 넓혀갈 것"}, {"no": 356, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-2", "cat": "C", "text": "3. 쇼피파이 구축 현황 \n•Installer들이 직접 자기들 업체의 배너를 올려서 홍보할 수 있도록 컬럼을 추가할 것"}, {"no": 357, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-4", "cat": "C", "text": "•카탈로그 내용이 약간 산만한 편으로 다음 세일즈 포인트 내용을 강조해줄 것 \n1. 잠열과 현열 부분이 하나의 라인으로 Continuous 하게 해결된다. Simple 하게 해결했다. Continuously Spiral \n2. 이와 같은 구조 때문에 Heat Exchange 누수에 대한 AS가 근본적으로 사라졌다.  AS가 필요 없는 열교환기 \n3. Cold Sandwich가 다른 제품에 비해 낮아졌다. Remarkably Reduced\n4. 동일 규격 대비 Pressure drop이 낮아 물 사용량을 두 배 더 쓸 수 있다.  실험을 통해서 확인할 것"}, {"no": 358, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-3", "cat": "C", "text": "•LG 미팅이 H/P 보조 온수기로 30만 대 팔 수 있다는 가능성을 우리에게 가르쳐준 계기가 되었다. \n  그 과정에서 우리는 H/P에 가스보일러 온수기를 어떻게 적용해 연결하는 지에 대해 배우게 될 것 \n  LG와의 거래를 열심히 잘해주도록 할 것"}, {"no": 359, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-6", "cat": "A", "text": "품질쪽으로 우리가 가야할 방향은 이제 보일러, 온수기의 모든 부품이 7년 동안 고장이 안 나도록\n  Spec을 업그레이드 해야 한다. \n  7년 동안 고장이 안 난다는 것은 설계 기준은 10년, 가혹 테스트 기준은 12년이 되어야 한다.\n  모든 부품을 하나하나 다 뜯어보면서 규격을 바꾸는 것이 아니고 부품의 부품을 맞춰서 개선해 나갈 것 \n  그 개선은 우리가 수량을 많이 팔아주면서 생산업자들이 비용을 다 감당하도록 만든다. \n  그것을 감독하는 입고 검사와 공 검사가 앞으로 가장 중요해진다."}, {"no": 360, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "A-7", "cat": "A", "text": "앞으로 CRM이 가동되면 모든 부품에 대한 고장은 기록을 해주고 ppm 관리할 것 \n  부품별로 1,000ppm이 넘으면 경고 조치, 2,000ppm 넘으면 R&D와 공장에 비상이 걸린다."}, {"no": 361, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-4", "cat": "C", "text": "RING 제품은 이제까지 미국 시장에서 누구도 못 가봤던 High-quality 제품으로 가겠다는 얘기인데 \n  이 하이 퀄리티를 우리가 확보함으로써 새로 시작되는 H/P 시장에 우리가 독보적인 자리를 차지한다."}, {"no": 362, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "C-4", "cat": "C", "text": "우리 쎌틱은 원래 온수기 회사가 아니라 보일러 회사다. \n  LG와의 상담을 통해 우리가 H/P 보조라는 새로운 시장을 깨닫게 된 것처럼 \n  이것 때문에 미국 보일러 업계를 우리가 들여다봐야 한다.\n1. 미국도 한국처럼 싱글 가정이 늘고 있다. \n2. 미국의 저소득층 주택을 지을 때는 온수와 난방을 같이 해야 경비가 절약된다."}, {"no": 363, "title": "대성쎌틱 에너지기기 회의 주요 지시사항 < 국내외 영업 >", "date": "2026.02.12(목)", "month": "2026.02", "code": "B-4", "cat": "B", "text": "•Granite에 찾아가서 보일러 사용하는 데 불편한 것은 없는지 개선할 부분은 없는지 알아보고 \n  설치된 현장도 몇 군데 둘러볼 것"}];
+var STRUCTURE=[{"code": "A", "label": "A. R&D·생산·품질", "subs": [{"code": "A-1", "label": "1. 개발·누수·구조 개선"}, {"code": "A-2", "label": "2. 실험∙실증"}, {"code": "A-3", "label": "3. 통합 플랫폼 개발"}, {"code": "A-4", "label": "4. 콤비∙소형 보일러 기술 개발"}, {"code": "A-5", "label": "5. H/P 보조기술 개발"}, {"code": "A-6", "label": "6. 생산∙품질 관리"}, {"code": "A-7", "label": "7. 불량률 ppm 관리"}]}, {"code": "B", "label": "B. AS∙워런티∙리콜", "subs": [{"code": "B-1", "label": "1. 워런티 승인∙관리"}, {"code": "B-2", "label": "2. 운반비∙물류 최적화"}, {"code": "B-3", "label": "3. 리콜 진행현황"}, {"code": "B-4", "label": "4. 설치·필드테스트·AS"}]}, {"code": "C", "label": "C. 마케팅·판매 전략", "subs": [{"code": "C-1", "label": "1. 목표 시장 정의"}, {"code": "C-2", "label": "2. 온라인 비즈니스"}, {"code": "C-3", "label": "3. H/P 시장 진입 전략"}, {"code": "C-4", "label": "4. RING∙온수기 판매 전략"}, {"code": "C-5", "label": "5. 신규 어플리케이션 개발"}, {"code": "C-6", "label": "6. 기타 시장 조사"}]}, {"code": "D", "label": "D. 유통∙채널 관리", "subs": [{"code": "D-1", "label": "1. Distributor 관리"}, {"code": "D-2", "label": "2. Plumber∙Pro 육성"}]}, {"code": "E", "label": "E. 영업 관리", "subs": [{"code": "E-1", "label": "1. 조직관리∙채용∙교육"}, {"code": "E-2", "label": "2. 재무∙회계 관리"}, {"code": "E-3", "label": "3. 재고 관리"}, {"code": "E-4", "label": "4. CRM 등록 및 관리"}]}];
+var COLORS={"A": {"color": "#6b9fd4", "bg": "rgba(107,159,212,0.15)"}, "B": {"color": "#c0504d", "bg": "rgba(192,80,77,0.15)"}, "C": {"color": "#9b7fcf", "bg": "rgba(155,127,207,0.15)"}, "D": {"color": "#4d9e5f", "bg": "rgba(77,158,95,0.15)"}, "E": {"color": "#c8883a", "bg": "rgba(200,136,58,0.15)"}};
+var MONTHS=["2025.10","2025.11","2025.12","2026.01","2026.02"];
+var SUB_LABEL={},CAT_LABEL={};
+STRUCTURE.forEach(function(g){
+  CAT_LABEL[g.code]=g.label;
+  g.subs.forEach(function(s){SUB_LABEL[s.code]=s.label;});
+});
+function getC(c){return COLORS[c]||{color:"#888",bg:"rgba(128,128,128,0.15)"};}
+
+function switchTab(name,el){
+  document.querySelectorAll(".page-section").forEach(function(s){s.classList.remove("active");});
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+  document.getElementById("tab-"+name).classList.add("active");
+  el.classList.add("active");
+}
+function goFreq(cat){
+  switchTab("freq",document.querySelectorAll(".tab")[1]);
+  setTimeout(function(){drillDown(null,cat,null,null);},80);
+}
+
+function renderFreqTable(){
+  var moHdrs=MONTHS.map(function(m){
+    var short=m.replace(/^20/,'').replace('.','.'); /* 2025.10 → 25.10 */
+    return "<th class=\"th-mo\">"+short+"</th>";
+  }).join("");
+  document.getElementById("freqHead").innerHTML=
+    "<tr><th class=\"th-cat\">대분류</th><th class=\"th-sub\">중분류</th>"
+    +moHdrs+"<th class=\"th-mo\">합계</th></tr>";
+
+  var rows="";
+  STRUCTURE.forEach(function(grp){
+    var c=getC(grp.code);
+    var validSubs=grp.subs.filter(function(s){return RAW.some(function(r){return r.code===s.code;});});
+    var rs=validSubs.length;
+    var catCnt=RAW.filter(function(r){return r.cat===grp.code;}).length;
+    var catPct=(catCnt/RAW.length*100).toFixed(1);
+    var span=rs+2; // 이름행 + 소계행 + 중분류 행들
+
+    // 대분류 이름 행
+    rows+="<tr class=\"rcat-name\">"
+         +"<td rowspan=\""+(rs+1)+"\" style=\"vertical-align:middle;border-right:1px solid var(--border);border-top:2px solid var(--border);\">"
+         +"<div class=\"cat-name\"><span class=\"cdot\" style=\"background:"+c.color+"\"></span>"
+         +"<span style=\"color:"+c.color+"\">"+grp.label+"</span></div>"
+         +"<div style=\"margin-top:4px;padding-left:14px;\"><span class=\"subtotal\">소계 : "+catCnt+"건 ("+catPct+"%)</span></div>"
+         +"</td>"
+         +"<td colspan=\""+(MONTHS.length+1)+"\" style=\"background:#191e27;border-top:2px solid var(--border);\"></td>"
+         +"</tr>";
+    // 중분류 행
+    validSubs.forEach(function(sub,si){
+      var moCnts=MONTHS.map(function(mo){return RAW.filter(function(r){return r.code===sub.code&&r.month===mo;}).length;});
+      var tot=moCnts.reduce(function(a,b){return a+b;},0);
+      var isLast=si===validSubs.length-1;
+      var bb=isLast?"border-bottom:2px solid var(--border);":"border-bottom:1px solid #252b35;";
+      var subShort=sub.label.replace(/^\d+\.\s*/,"");
+      var moCells=moCnts.map(function(cnt,i){
+        if(cnt>0)return "<td class=\"nc\" style=\""+bb+"\"><span class=\"fn\" style=\"background:"+c.bg+";color:"+c.color+"\" onclick=\"drillDown('"+MONTHS[i]+"','"+grp.code+"','"+sub.code+"',this)\">"+cnt+"</span></td>";
+        return "<td class=\"nc\" style=\""+bb+"\"><span class=\"fn zero\">—</span></td>";
+      }).join("");
+      rows+="<tr class=\"rsub\">"
+           +"<td class=\"sub-name\" style=\""+bb+"\">"+subShort+"</td>"
+           +moCells
+           +"<td class=\"nc\" style=\""+bb+"\"><span class=\"fn\" style=\"background:"+c.bg+";color:"+c.color+";font-weight:800\" onclick=\"drillDown(null,'"+grp.code+"','"+sub.code+"',this)\">"+tot+"</span></td>"
+           +"</tr>";
+    });
+  });
+  // 합계 행
+  var gCells=MONTHS.map(function(mo,i){
+    var cnt=RAW.filter(function(r){return r.month===mo;}).length;
+    return "<td class=\"nc\"><span class=\"fn\" style=\"background:rgba(255,255,255,0.07);color:var(--text)\" onclick=\"drillDown('"+MONTHS[i]+"',null,null,this)\">"+cnt+"</span></td>";
+  }).join("");
+  rows+="<tr class=\"rtot\"><td colspan=\"2\" style=\"color:var(--text)\">합 계</td>"
+       +gCells
+       +"<td class=\"nc\"><span class=\"fn\" style=\"background:rgba(255,255,255,0.1);color:var(--text)\" onclick=\"drillDown(null,null,null,this)\">363</span></td></tr>";
+  document.getElementById("freqBody").innerHTML=rows;
+}
+
+var drillKey=null;
+function drillDown(mo,cat,code,el){
+  var key=(mo||"")+(cat||"")+(code||"");
+  document.querySelectorAll(".fn.active-cell").forEach(function(e){e.classList.remove("active-cell");});
+  if(drillKey===key){closeDrill();return;}
+  drillKey=key;
+  if(el)el.classList.add("active-cell");
+  var items=RAW.filter(function(r){
+    if(mo&&r.month!==mo)return false;
+    if(cat&&r.cat!==cat)return false;
+    if(code&&r.code!==code)return false;
+    return true;
+  });
+  var parts=[];
+  if(mo)parts.push(mo);
+  if(cat)parts.push(CAT_LABEL[cat]||cat);
+  if(code)parts.push(code+" "+((SUB_LABEL[code]||"").replace(/^\d+\.\s*/,"")));
+  if(!parts.length)parts.push("전체");
+  document.getElementById("drillTitle").textContent=parts.join(" \u203a ");
+  document.getElementById("drillMeta").textContent="\ucd1d "+items.length+"\uac74";
+  document.getElementById("drillList").innerHTML=items.map(function(r){
+    var c=getC(r.cat);
+    var subShort=(SUB_LABEL[r.code]||"").replace(/^\d+\.\s*/,"");
+    return "<li class=\"ditem\" onclick=\"openModal("+r.no+")\">"
+          +"<div class=\"dino\">#"+r.no+" \u00b7 "+r.date+"</div>"
+          +"<div class=\"ditext\">"+r.text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</div>"
+          +"<div class=\"dimeta\">"
+          +"<span class=\"ctag\" style=\"background:"+c.bg+";color:"+c.color+"\">"+r.code+"</span>"
+          +"<span style=\"color:var(--text2)\">"+subShort+"</span>"
+          +"</div></li>";
+  }).join("");
+  document.getElementById("drillEmpty").style.display="none";
+  document.getElementById("drillPanel").style.display="block";
+}
+function closeDrill(){
+  document.getElementById("drillPanel").style.display="none";
+  document.getElementById("drillEmpty").style.display="flex";
+  document.querySelectorAll(".fn.active-cell").forEach(function(e){e.classList.remove("active-cell");});
+  drillKey=null;
+}
+
+var filtered=RAW.slice(),curCat="",curPage=1,PER=20;
+function setCat(cat,btn){
+  curCat=cat;
+  document.querySelectorAll(".cbt").forEach(function(b){b.classList.remove("active");b.style.background="";});
+  btn.classList.add("active");
+  if(cat)btn.style.background=getC(cat).bg;
+  curPage=1;applyFilter();
+}
+function applyFilter(){
+  var q=document.getElementById("searchInput").value.toLowerCase();
+  var mo=document.getElementById("monthSel").value;
+  filtered=RAW.filter(function(r){
+    if(curCat&&r.cat!==curCat)return false;
+    if(mo&&r.month!==mo)return false;
+    if(q&&r.text.toLowerCase().indexOf(q)<0&&r.title.toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  curPage=1;renderTable();
+}
+function renderTable(){
+  var pd=filtered.slice((curPage-1)*PER,curPage*PER);
+  document.getElementById("tableBody").innerHTML=pd.map(function(r){
+    var c=getC(r.cat);
+    var catShort=(CAT_LABEL[r.cat]||"").replace(/^[A-F]\.\s*/,"");
+    var subShort=(SUB_LABEL[r.code]||"").replace(/^\d+\.\s*/,"");
+    var safeText=r.text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return "<tr>"
+          +"<td style=\"font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);width:38px\">"+r.no+"</td>"
+          +"<td style=\"font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);width:110px;white-space:nowrap\">"+r.date+"</td>"
+          +"<td style=\"width:50px\"><span class=\"ctag\" style=\"background:"+c.bg+";color:"+c.color+"\">"+r.code+"</span></td>"
+          +"<td style=\"font-size:12px;color:var(--text2);width:120px\">"+catShort+"</td>"
+          +"<td style=\"font-size:12px;color:var(--text2);width:135px\">"+subShort+"</td>"
+          +"<td class=\"td-text\">"+safeText+"</td>"
+          +"</tr>";
+  }).join("");
+  document.getElementById("resultCount").textContent=filtered.length+"\uac74";
+  renderPgn();
+}
+function renderPgn(){
+  var tot=Math.ceil(filtered.length/PER);
+  var pg=document.getElementById("pagination");
+  if(tot<=1){pg.innerHTML="";return;}
+  var h="<button class=\"pgb\" onclick=\"goPage("+(curPage-1)+")\" "+(curPage===1?"disabled":"")+">&#8249;</button>";
+  var s=Math.max(1,curPage-3),e=Math.min(tot,curPage+3);
+  if(s>1)h+="<button class=\"pgb\" onclick=\"goPage(1)\">1</button>"+(s>2?"<span style=\"padding:0 4px;color:var(--text2)\">&#8230;</span>":"");
+  for(var i=s;i<=e;i++)h+="<button class=\"pgb "+(i===curPage?"active":"")+"\" onclick=\"goPage("+i+")\">"+i+"</button>";
+  if(e<tot)h+=(e<tot-1?"<span style=\"padding:0 4px;color:var(--text2)\">&#8230;</span>":"")+"<button class=\"pgb\" onclick=\"goPage("+tot+")\">"+tot+"</button>";
+  h+="<button class=\"pgb\" onclick=\"goPage("+(curPage+1)+")\" "+(curPage===tot?"disabled":"")+">&#8250;</button>";
+  pg.innerHTML=h;
+}
+function goPage(p){curPage=p;renderTable();document.querySelector(".tbl-wrap").scrollIntoView({behavior:"smooth",block:"start"});}
+
+function openModal(no){
+  var r=RAW.find(function(x){return x.no===no;});if(!r)return;
+  var c=getC(r.cat);
+  var subShort=(SUB_LABEL[r.code]||"").replace(/^\d+\.\s*/,"");
+  document.getElementById("modalMeta").innerHTML=
+    "<span>"+r.date+"</span>"
+    +"<span class=\"ctag\" style=\"background:"+c.bg+";color:"+c.color+"\">"+r.code+"</span>"
+    +"<span class=\"ctag\" style=\"background:rgba(255,255,255,0.06);color:var(--text2)\">"+subShort+"</span>";
+  document.getElementById("modalTitle").textContent=r.title;
+  document.getElementById("modalBody").textContent=r.text;
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){document.getElementById("modal").classList.remove("open");}
+
+window.addEventListener("DOMContentLoaded",function(){
+  renderFreqTable();
+  renderTable();
+  var MTG={"2025.10":7,"2025.11":3,"2025.12":3,"2026.01":4,"2026.02":2};
+  new Chart(document.getElementById("monthChart"),{type:"bar",
+    data:{labels:MONTHS,datasets:[
+      {type:"line",label:"지시사항 수",
+        data:MONTHS.map(function(mo){return RAW.filter(function(r){return r.month===mo;}).length;}),
+        borderColor:"#6b9fd4",backgroundColor:"rgba(107,159,212,0.12)",
+        borderWidth:2.5,pointBackgroundColor:"#6b9fd4",pointRadius:5,pointHoverRadius:7,
+        fill:true,tension:0.35,yAxisID:"yL"},
+      {type:"bar",label:"회의 횟수",
+        data:MONTHS.map(function(mo){return MTG[mo]||0;}),
+        backgroundColor:"rgba(107,159,212,0.3)",borderRadius:5,borderSkipped:false,
+        yAxisID:"yR"}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"top",labels:{color:"#8b949e",font:{size:12},padding:14,boxWidth:12}}},
+      scales:{
+        x:{grid:{color:"#30363d"},ticks:{color:"#8b949e",font:{size:12}}},
+        yL:{position:"left",grid:{color:"#30363d"},ticks:{color:"#8b949e",font:{size:12}},beginAtZero:true,
+          title:{display:true,text:"지시사항",color:"#8b949e",font:{size:11}}},
+        yR:{position:"right",grid:{drawOnChartArea:false},
+          ticks:{color:"#8b949e",font:{size:12},stepSize:1,callback:function(v){return Number.isInteger(v)?v:null;}},
+          beginAtZero:true,max:8,
+          title:{display:true,text:"회의 횟수",color:"#8b949e",font:{size:11}}}
+      }}
+  });
+  new Chart(document.getElementById("catChart"),{type:"doughnut",
+    data:{labels:STRUCTURE.map(function(g){return g.code+". "+g.label.replace(/^[A-F]\. /,"");}),
+      datasets:[{data:STRUCTURE.map(function(g){return RAW.filter(function(r){return r.cat===g.code;}).length;}),
+        backgroundColor:STRUCTURE.map(function(g){return COLORS[g.code].color;}),borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
+      plugins:{legend:{position:"right",labels:{color:"#8b949e",font:{size:12},padding:10}}}}
+  });
+  new Chart(document.getElementById("stackChart"),{type:"bar",
+    data:{labels:MONTHS,
+      datasets:STRUCTURE.map(function(g){return{label:g.label,
+        data:MONTHS.map(function(mo){return RAW.filter(function(r){return r.cat===g.code&&r.month===mo;}).length;}),
+        backgroundColor:COLORS[g.code].color,borderRadius:3,borderSkipped:false};})},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom",labels:{color:"#8b949e",font:{size:12},padding:10}}},
+      scales:{x:{stacked:true,grid:{color:"#30363d"},ticks:{color:"#8b949e",font:{size:12}}},
+              y:{stacked:true,grid:{color:"#30363d"},ticks:{color:"#8b949e",font:{size:12}},beginAtZero:true}}}
+  });
+});
+</script>
+
+<script>
+(function(){
+  const hdr = document.querySelector('.header');
+  if(!hdr) return;
+
+  // 버튼 생성
+  const btn = document.createElement('button');
+  btn.className = 'senior-toggle';
+  btn.type = 'button';
+  btn.textContent = '큰글씨·밝은화면';
+  btn.onclick = function(){
+    const root = document.documentElement;
+    const on = !root.classList.contains('senior');
+    root.classList.toggle('senior', on);
+    localStorage.setItem('vesta_senior_mode', on ? '1' : '0');
+  };
+
+  // 제목(통합표) 바로 옆에 배치
+  const h1 = hdr.querySelector('h1');
+  if(h1){
+    // h1을 inline-flex 컨테이너로 만들어 버튼이 옆에 붙도록 함
+    h1.style.display = 'inline-flex';
+    h1.style.alignItems = 'center';
+    h1.style.gap = '12px';
+    h1.appendChild(btn);
+  }else{
+    hdr.insertBefore(btn, hdr.firstChild);
+  }
+
+  // 모드 복원
+  const saved = localStorage.getItem('vesta_senior_mode');
+  if(saved === '1'){
+    document.documentElement.classList.add('senior');
+  }
+})();
+</script>
+
+</body>
+</html>
