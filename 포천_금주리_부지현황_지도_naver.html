@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포천 금주리 부지현황 지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 11px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+  }
+  header h1 { font-size: 14px; font-weight: 700; }
+  header p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .badge-row { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .badge {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 9px; font-size: 11px;
+    cursor: pointer; user-select: none; transition: opacity 0.15s;
+  }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .badge.off { opacity: 0.3; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  .sidebar {
+    width: 280px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  .sb-head {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .sb-head strong { font-size: 12px; }
+  .sb-head span { font-size: 11px; color: var(--text-muted); }
+  .search { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .search input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 6px 9px;
+    font-size: 11px; font-family: inherit; outline: none;
+  }
+  .search input:focus { border-color: var(--accent); }
+  .search input::placeholder { color: var(--text-muted); }
+  .list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .list::-webkit-scrollbar { width: 3px; }
+  .list::-webkit-scrollbar-thumb { background: var(--border); }
+  .grp-label {
+    padding: 6px 14px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--text-muted); background: var(--bg); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 5px;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .grp-label .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .item {
+    padding: 9px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    border-left: 2px solid transparent; transition: background 0.1s;
+  }
+  .item:hover { background: var(--surface2); }
+  .item.active { background: var(--surface2); border-left-color: var(--accent); }
+  .item .num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); min-width: 16px; text-align: right; }
+  .item .info { flex: 1; min-width: 0; }
+  .item .jibun { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; }
+  .item .sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .area { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); text-align: right; flex-shrink: 0; }
+  .item .area small { display: block; font-size: 9px; color: var(--text-muted); }
+
+  #map { flex: 1; }
+
+  .stats {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 7px 16px; display: flex; gap: 20px; flex-shrink: 0;
+  }
+  .stat { font-size: 11px; color: var(--text-muted); }
+  .stat strong { color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+
+  /* 팝업 */
+  .leaflet-popup-content-wrapper {
+    background: #161b22 !important; border: 1px solid #30363d !important;
+    border-radius: 10px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+    padding: 0 !important;
+  }
+  .leaflet-popup-tip { background: #161b22 !important; }
+  .leaflet-popup-content { margin: 0 !important; color: #e6edf3; }
+  .popup { padding: 14px 16px; min-width: 200px; font-family: 'Noto Sans KR', sans-serif; }
+  .popup .pcat { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .popup .pjibun { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; margin-bottom: 9px; }
+  .popup .prow { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .popup .prow .k { color: #8b949e; }
+  .popup .pdiv { height: 1px; background: #30363d; margin: 7px 0; }
+  .popup .pbig { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #58a6ff; }
+  .popup .pbig small { font-size: 11px; color: #8b949e; }
+  .leaflet-container { background: #1a1f2e; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📍 포천시 영중면 금주리 부지현황</h1>
+    <p>2022.03.29 기준 · 총 53필지 · 소유자: 대성산업</p>
+  </div>
+  <div class="badge-row" id="badges"></div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sb-head"><strong>필지 목록</strong><span id="cnt">53개</span></div>
+    <div class="search"><input id="q" placeholder="지번, 사용자, 지목 검색..." oninput="render()"></div>
+    <div class="list" id="list"></div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="stats">
+  <div class="stat">필지 수 <strong>53</strong></div>
+  <div class="stat">총 면적 <strong id="sa"></strong> ㎡</div>
+  <div class="stat">(<strong id="sp"></strong> 평)</div>
+  <div class="stat" style="margin-left:auto;font-size:10px;">경기도 포천시 영중면 금주리 · 지도: © OpenStreetMap</div>
+</div>
+
+<script>
+const C = {
+  '공장/충전소 부지': '#f0883e',
+  '주유소':          '#3fb950',
+  '잔여부지':        '#a371f7',
+  '건너편 토지':     '#ff7b72',
+};
+const CATS = Object.keys(C);
+
+const DATA = [
+  {cat:'공장/충전소 부지',no:1, jimok:'주유소',   jibun:'869-4', m2:1198,  py:362.4, owner:'대성산업',user:'북부충전소',note:null,        lat:38.00612,lng:127.23045},
+  {cat:'공장/충전소 부지',no:2, jimok:'주유소',   jibun:'869-7', m2:665,   py:201.2, owner:null,      user:'북부충전소',note:null,        lat:38.00598,lng:127.23062},
+  {cat:'공장/충전소 부지',no:3, jimok:'주유소',   jibun:'870-1', m2:2664,  py:805.9, owner:null,      user:'북부충전소',note:null,        lat:38.00578,lng:127.23078},
+  {cat:'공장/충전소 부지',no:4, jimok:'주유소',   jibun:'870-3', m2:311,   py:94.1,  owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00565,lng:127.23095},
+  {cat:'공장/충전소 부지',no:5, jimok:'주유소',   jibun:'870-6', m2:7418,  py:2243.9,owner:null,      user:'북부,캔',   note:'공장 건물', lat:38.00550,lng:127.23110},
+  {cat:'공장/충전소 부지',no:6, jimok:'주유소',   jibun:'870-8', m2:158,   py:47.8,  owner:null,      user:'캔사업소',  note:null,        lat:38.00538,lng:127.23125},
+  {cat:'공장/충전소 부지',no:7, jimok:'주유소',   jibun:'870-9', m2:641,   py:193.9, owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00525,lng:127.23098},
+  {cat:'공장/충전소 부지',no:8, jimok:'주유소',   jibun:'870-11',m2:588,   py:177.9, owner:null,      user:'북부충전소',note:null,        lat:38.00545,lng:127.23055},
+  {cat:'공장/충전소 부지',no:9, jimok:'주유소',   jibun:'870-12',m2:1013,  py:306.5, owner:null,      user:'북부충전소',note:null,        lat:38.00560,lng:127.23040},
+  {cat:'공장/충전소 부지',no:10,jimok:'주유소',   jibun:'870-19',m2:658,   py:199.0, owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00572,lng:127.23025},
+  {cat:'공장/충전소 부지',no:11,jimok:'주유소',   jibun:'870-26',m2:188,   py:56.9,  owner:null,      user:'북부충전소',note:null,        lat:38.00585,lng:127.23010},
+  {cat:'공장/충전소 부지',no:12,jimok:'주유소',   jibun:'870-24',m2:276,   py:83.5,  owner:null,      user:'북부충전소',note:null,        lat:38.00595,lng:127.23030},
+  {cat:'공장/충전소 부지',no:13,jimok:'주유소',   jibun:'870-25',m2:367,   py:111.0, owner:null,      user:'캔사업소',  note:null,        lat:38.00608,lng:127.23018},
+  {cat:'공장/충전소 부지',no:14,jimok:'주유소',   jibun:'871-2', m2:497,   py:150.3, owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00520,lng:127.23145},
+  {cat:'공장/충전소 부지',no:15,jimok:'주유소',   jibun:'871-8', m2:307,   py:92.9,  owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00508,lng:127.23160},
+  {cat:'공장/충전소 부지',no:16,jimok:'주유소',   jibun:'871-9', m2:279,   py:84.4,  owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00495,lng:127.23175},
+  {cat:'공장/충전소 부지',no:17,jimok:'주유소',   jibun:'871-7', m2:147,   py:44.5,  owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00510,lng:127.23190},
+  {cat:'공장/충전소 부지',no:18,jimok:'주유소',   jibun:'872-3', m2:807,   py:244.1, owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00485,lng:127.23138},
+  {cat:'공장/충전소 부지',no:19,jimok:'주유소',   jibun:'872-4', m2:456,   py:138.0, owner:null,      user:'캔사업소',  note:'공장 건물', lat:38.00472,lng:127.23152},
+  {cat:'공장/충전소 부지',no:20,jimok:'주유소',   jibun:'872-5', m2:30,    py:9.1,   owner:null,      user:'캔사업소',  note:null,        lat:38.00460,lng:127.23165},
+  {cat:'공장/충전소 부지',no:21,jimok:'주유소',   jibun:'872-6', m2:49,    py:14.8,  owner:null,      user:'캔사업소',  note:null,        lat:38.00448,lng:127.23145},
+  {cat:'공장/충전소 부지',no:22,jimok:'주유소',   jibun:'872-7', m2:430,   py:130.1, owner:null,      user:'캔사업소',  note:null,        lat:38.00462,lng:127.23128},
+  {cat:'공장/충전소 부지',no:23,jimok:'주유소',   jibun:'873-2', m2:152,   py:46.0,  owner:null,      user:'북부충전소',note:null,        lat:38.00440,lng:127.23110},
+  {cat:'공장/충전소 부지',no:24,jimok:'주유소',   jibun:'874-3', m2:60,    py:18.2,  owner:null,      user:'캔사업소',  note:null,        lat:38.00428,lng:127.23088},
+  {cat:'공장/충전소 부지',no:25,jimok:'주유소',   jibun:'874-11',m2:476,   py:144.0, owner:null,      user:'캔사업소',  note:null,        lat:38.00415,lng:127.23072},
+  {cat:'주유소',          no:1, jimok:'주유소',   jibun:'879-2', m2:878,   py:265.7, owner:'대성산업',user:null,        note:null,        lat:38.00680,lng:127.23210},
+  {cat:'주유소',          no:2, jimok:'대지',     jibun:'879-3', m2:645,   py:195.1, owner:null,      user:null,        note:null,        lat:38.00668,lng:127.23225},
+  {cat:'주유소',          no:3, jimok:'도로',     jibun:'879-4', m2:112,   py:33.9,  owner:null,      user:null,        note:null,        lat:38.00658,lng:127.23238},
+  {cat:'주유소',          no:4, jimok:'도로',     jibun:'879-5', m2:28,    py:8.5,   owner:null,      user:null,        note:null,        lat:38.00648,lng:127.23250},
+  {cat:'잔여부지',        no:1, jimok:'잡종지',   jibun:'869-1', m2:284,   py:85.9,  owner:'대성산업',user:null,        note:null,        lat:38.00625,lng:127.23028},
+  {cat:'잔여부지',        no:2, jimok:'잡종지',   jibun:'869-2', m2:2394,  py:724.2, owner:null,      user:null,        note:null,        lat:38.00638,lng:127.23012},
+  {cat:'잔여부지',        no:3, jimok:'잡종지',   jibun:'869-5', m2:50,    py:15.1,  owner:null,      user:null,        note:null,        lat:38.00648,lng:127.22998},
+  {cat:'잔여부지',        no:4, jimok:'잡종지',   jibun:'869-8', m2:199,   py:60.2,  owner:null,      user:null,        note:null,        lat:38.00655,lng:127.23015},
+  {cat:'잔여부지',        no:5, jimok:'잡종지',   jibun:'870-2', m2:318,   py:96.2,  owner:null,      user:null,        note:null,        lat:38.00590,lng:127.23068},
+  {cat:'잔여부지',        no:6, jimok:'임야',     jibun:'870-4', m2:166,   py:50.2,  owner:null,      user:null,        note:null,        lat:38.00535,lng:127.23082},
+  {cat:'잔여부지',        no:7, jimok:'임야',     jibun:'870-20',m2:2729.8,py:825.5, owner:'대성산업2/3,황관복1/3',user:null,note:null, lat:38.00518,lng:127.23068},
+  {cat:'잔여부지',        no:8, jimok:'체육용지', jibun:'870-23',m2:118,   py:35.7,  owner:'대성산업',user:null,        note:null,        lat:38.00505,lng:127.23052},
+  {cat:'잔여부지',        no:9, jimok:'잡종지',   jibun:'871-3', m2:65,    py:19.7,  owner:null,      user:null,        note:null,        lat:38.00498,lng:127.23142},
+  {cat:'잔여부지',        no:10,jimok:'잡종지',   jibun:'871-6', m2:66,    py:20.0,  owner:null,      user:null,        note:null,        lat:38.00488,lng:127.23128},
+  {cat:'잔여부지',        no:11,jimok:'대지',     jibun:'891',   m2:522,   py:157.9, owner:null,      user:null,        note:null,        lat:38.00398,lng:127.23058},
+  {cat:'잔여부지',        no:12,jimok:'하천',     jibun:'891-5', m2:429,   py:129.8, owner:null,      user:null,        note:null,        lat:38.00385,lng:127.23042},
+  {cat:'잔여부지',        no:13,jimok:'도로',     jibun:'891-7', m2:951,   py:287.7, owner:null,      user:null,        note:null,        lat:38.00372,lng:127.23028},
+  {cat:'잔여부지',        no:14,jimok:'주유소',   jibun:'870-13',m2:1178,  py:356.4, owner:null,      user:null,        note:null,        lat:38.00558,lng:127.23115},
+  {cat:'잔여부지',        no:15,jimok:'잡종지',   jibun:'889-1', m2:39,    py:11.8,  owner:null,      user:null,        note:'주유소 뒤편',lat:38.00698,lng:127.23188},
+  {cat:'잔여부지',        no:16,jimok:'잡종지',   jibun:'889-3', m2:177,   py:53.5,  owner:null,      user:null,        note:'주유소 뒤편',lat:38.00712,lng:127.23172},
+  {cat:'잔여부지',        no:17,jimok:'잡종지',   jibun:'889-4', m2:496,   py:150.1, owner:null,      user:null,        note:'주유소 뒤편',lat:38.00725,lng:127.23158},
+  {cat:'잔여부지',        no:18,jimok:'잡종지',   jibun:'889-5', m2:258,   py:78.0,  owner:null,      user:null,        note:'주유소 뒤편',lat:38.00738,lng:127.23145},
+  {cat:'잔여부지',        no:19,jimok:'잡종지',   jibun:'889-6', m2:706,   py:213.6, owner:null,      user:null,        note:'주유소 뒤편',lat:38.00750,lng:127.23132},
+  {cat:'건너편 토지',     no:1, jimok:'잡종지',   jibun:'874-1', m2:330,   py:99.8,  owner:'대성산업',user:null,        note:null,        lat:38.00402,lng:127.23095},
+  {cat:'건너편 토지',     no:2, jimok:'하천',     jibun:'874-2', m2:1187,  py:359.1, owner:null,      user:null,        note:null,        lat:38.00388,lng:127.23112},
+  {cat:'건너편 토지',     no:3, jimok:'잡종지',   jibun:'874-4', m2:651,   py:196.9, owner:null,      user:null,        note:null,        lat:38.00375,lng:127.23128},
+  {cat:'건너편 토지',     no:4, jimok:'하천',     jibun:'875-1', m2:615,   py:186.1, owner:null,      user:null,        note:null,        lat:38.00362,lng:127.23145},
+  {cat:'건너편 토지',     no:5, jimok:'하천',     jibun:'875-2', m2:615,   py:186.1, owner:null,      user:null,        note:null,        lat:38.00350,lng:127.23158},
+];
+
+// 통계
+let total = DATA.reduce((s,p)=>s+p.m2, 0);
+document.getElementById('sa').textContent = total.toLocaleString();
+document.getElementById('sp').textContent = Math.round(total/3.3058).toLocaleString();
+
+// 배지
+const badgeRow = document.getElementById('badges');
+const visible = new Set(CATS);
+CATS.forEach(cat => {
+  const cnt = DATA.filter(p=>p.cat===cat).length;
+  const b = document.createElement('div');
+  b.className = 'badge';
+  b.dataset.cat = cat;
+  b.style.color = C[cat];
+  b.innerHTML = `<div class="dot" style="background:${C[cat]}"></div>${cat} ${cnt}필지`;
+  b.onclick = () => {
+    if (visible.has(cat)) { visible.delete(cat); b.classList.add('off'); }
+    else { visible.add(cat); b.classList.remove('off'); }
+    markers.forEach((m,i) => {
+      if (DATA[i].cat === cat) visible.has(cat) ? m.addTo(map) : m.remove();
+    });
+    render();
+  };
+  badgeRow.appendChild(b);
+});
+
+// 지도 (OpenStreetMap - API키 불필요)
+const map = L.map('map').setView([38.0053, 127.2315], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+// 마커
+let activeIdx = -1;
+let activeItem = null;
+const markers = DATA.map((p, i) => {
+  const color = C[p.cat];
+  const icon = L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34">
+      <path d="M13 0C5.8 0 0 5.8 0 13c0 9.7 13 21 13 21s13-11.3 13-21C26 5.8 20.2 0 13 0z" fill="${color}" opacity="0.92"/>
+      <circle cx="13" cy="13" r="5.5" fill="white" opacity="0.9"/>
+    </svg>`,
+    className: '',
+    iconSize: [26, 34],
+    iconAnchor: [13, 34],
+    popupAnchor: [0, -36]
+  });
+
+  const popup = L.popup({ closeButton: false, maxWidth: 260 }).setContent(`
+    <div class="popup">
+      <div class="pcat" style="color:${color}">${p.cat}</div>
+      <div class="pjibun">금주리 ${p.jibun}</div>
+      <div class="prow"><span class="k">지목</span><span>${p.jimok}</span></div>
+      ${p.user ? `<div class="prow"><span class="k">사용자</span><span>${p.user}</span></div>` : ''}
+      ${p.owner ? `<div class="prow"><span class="k">소유자</span><span>${p.owner}</span></div>` : ''}
+      ${p.note ? `<div class="prow"><span class="k">비고</span><span>${p.note}</span></div>` : ''}
+      <div class="pdiv"></div>
+      <div class="pbig">${p.m2.toLocaleString()}<small> ㎡ · ${p.py.toLocaleString()} 평</small></div>
+    </div>`);
+
+  const marker = L.marker([p.lat, p.lng], { icon }).addTo(map).bindPopup(popup);
+  marker.on('click', () => {
+    activeIdx = i;
+    const el = document.querySelector(`.item[data-i="${i}"]`);
+    if (el) { if(activeItem) activeItem.classList.remove('active'); el.classList.add('active'); activeItem = el; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  });
+  return marker;
+});
+
+// 목록 렌더
+function render() {
+  const q = document.getElementById('q').value.toLowerCase();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  let shown = 0;
+
+  CATS.forEach(cat => {
+    const items = DATA.map((p,i)=>({p,i})).filter(({p,i}) =>
+      p.cat === cat && visible.has(cat) &&
+      (!q || p.jibun.includes(q) || (p.user||'').includes(q) || (p.jimok||'').includes(q))
+    );
+    if (!items.length) return;
+    shown += items.length;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'grp-label';
+    lbl.innerHTML = `<div class="dot" style="background:${C[cat]}"></div>${cat} (${items.length})`;
+    list.appendChild(lbl);
+
+    items.forEach(({p,i}) => {
+      const el = document.createElement('div');
+      el.className = 'item' + (i===activeIdx?' active':'');
+      el.dataset.i = i;
+      el.innerHTML = `
+        <div class="num">${p.no}</div>
+        <div class="info">
+          <div class="jibun" style="color:${C[p.cat]}">금주리 ${p.jibun}</div>
+          <div class="sub">${p.jimok}${p.user?' · '+p.user:''}${p.note?' · '+p.note:''}</div>
+        </div>
+        <div class="area">${p.m2.toLocaleString()}<small>㎡</small></div>`;
+      el.onclick = () => {
+        if(activeItem) activeItem.classList.remove('active');
+        el.classList.add('active'); activeItem = el; activeIdx = i;
+        map.setView([p.lat, p.lng], 17);
+        markers[i].openPopup();
+      };
+      list.appendChild(el);
+    });
+  });
+  document.getElementById('cnt').textContent = shown+'개';
+}
+
+render();
+</script>
+</body>
+</html>
